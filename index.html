@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #222;
+  color: #fff;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.left-section {
+    background-color: #111;
+    padding: 20px;
+    border-radius: 10px;
+    margin-right: 20px;
+    width: 350px;
+    align-items: flex-start; /* Tambahkan baris ini */
+  }
+
+.right-section {
+  background-color: #111;
+  padding: 20px;
+  border-radius: 10px;
+  flex: 1;
+}
+
+.profile-picture {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.profile-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+h1, h2, h3, h4, h5 {
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.list-item {
+  margin-bottom: 10px;
+}
+
+.list-item i {
+  margin-right: 5px;
+}
+
+.contact-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.contact-info i {
+  font-size: 20px;
+  margin-right: 10px;
+}
+
+.social-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.social-link {
+  margin: 0 10px;
+  font-size: 24px;
+  color: #fff;
+}
+
+.social-link:hover {
+  color: #007bff;
+}
+
+.github-link {
+    display: flex;
+    align-items: center; /* Tambahkan baris ini */
+    justify-content: center;
+    font-size: 16px;
+    color: #fff;
+    text-decoration: none;
+    margin-top: 10px;
+  }
+
+.github-link i {
+  margin-right: 5px;
+}
+
+.github-link:hover {
+  color: #007bff;
+}
+</style>
+
+<link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+<div class="container">
+  <div class="left-section">
+    <div class="profile-picture">
+      <img src="profile-picture.jpg" alt="Profile Picture">
+    </div>
+    <h1>Qudum Awang</h1>
+    <h2>Dwi Cahyo</h2>
+    <p>Saya adalah seorang mahasiswa S1 Informatika di Universitas Muhammadiyah Surabaya dengan minat khusus dalam pengembangan web dan desain antarmuka pengguna. Saya memiliki keahlian dalam pengembangan front-end dan web design. Saya mencari peluang untuk mengembangkan karir di bidang teknologi informasi, terutama dalam pengembangan web.</p>
+    <h3>KEAHLIAN</h3>
+    <ul>
+      <li>Web Developer</li>
+      <li>User Interface Design</li>
+      <li>Frontend Developer</li>
+    </ul>
+    <h3>KONTAK</h3>
+    <div class="contact-info">
+      <img src="phone-icon.png" alt="logo" class="logo">
+      <span>+62 895 801 499 771</span>
+    </div>
+    <div class="contact-info">
+      <img src="map-icon.png" alt="logo" class="logo">
+      <span>Kemantren Sidoarjo</span>
+    </div>
+    <a href="https://qudumawang.github.io/" class="github-link">
+      <img src="github-icon.png" alt="logo" class="logo">
+      <span>https://qudumawang.github.io/</span>
+    </a>
+  </div>
+  <div class="right-section">
+    <h3>DATA PRIBADI</h3>
+    <ul>
+      <li class="list-item"><i class="fas fa-calendar-alt"></i> Tempat, Tanggal Lahir: Nganjuk, 20 Maret 2004</li>
+      <li class="list-item"><i class="fas fa-home"></i> Alamat: Kemantren Sidoarjo</li>
+      <li class="list-item"><i class="fas fa-phone-alt"></i> Nomor Telephone: +62 895 801 499 771</li>
+      <li class="list-item"><i class="fas fa-mars"></i> Jenis Kelamin: Laki-laki</li>
+      <li class="list-item"><i class="fas fa-praying-hands"></i> Agama: Islam</li>
+      <li class="list-item"><i class="fas fa-globe-americas"></i> Kewarga Negaraan: Indonesia</li>
+      <li class="list-item"><i class="fas fa-envelope"></i> Email: awanggudum@gmail.com</li>
+    </ul>
+    <h3>PENDIDIKAN</h3>
+    <ul>
+      <li class="list-item"><i class="fas fa-graduation-cap"></i> SMA Negeri 1 Kertosono (2019-2022)</li>
+      <li class="list-item"><i class="fas fa-graduation-cap"></i> Universitas Muhammadiyah Surabaya (2022-sekarang)</li>
+    </ul>
+    <h3>PENGALAMAN</h3>
+    <ul>
+      <li class="list-item"><i class="fas fa-trophy"></i> Panitia Lomba Scratch Operator dan Dokumenter Acara (2023)</li>
+      <li class="list-item"><i class="fas fa-microphone"></i> Bertugas merekam jalannya lomba dan memastikan semua kegiatan berlangsung sesuai jadwal.</li>
+      <li class="list-item"><i class="fas fa-chalkboard-teacher"></i> Panitia Webinar Pembuatan Animasi Menggunakan Animaker Operator (2023)</li>
+      <li class="list-item"><i class="fas fa-cogs"></i> Bertugas memastikan webinar berjalan dengan lancar, termasuk pengaturan teknis dan memastikan kelancaran selama acara berlangsung.</li>
+    </ul>
+    <h3>PROYEK</h3>
+    <ul>
+      <li class="list-item"><i class="fas fa-laptop-code"></i> Website Reservasi Parkir Web Developer</li>
+      <li class="list-item"><i class="fas fa-code"></i> Website CRUD tentang reservasi parkir berbasis php.</li>
+      <li class="list-item"><i class="fas fa-bell"></i> Aplikasi Alarm Sholat 5 Waktu Salah satu developer dalam tim pengembangan.</li>
+      <li class="list-item"><i class="fas fa-clock"></i> Aplikasi pengingat sholat 5 waktu menggunakan Java.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

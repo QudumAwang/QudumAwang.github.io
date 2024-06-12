@@ -1,0 +1,116 @@
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #222;
+    color: #fff;
+  }
+
+  .logo {
+    max-width: 20px;
+    max-height: 20px;
+  }
+  
+  .contact-info {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .contact-info img {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+  }
+  
+  .github-link {
+    display: flex;
+    align-items: center; /* Tambahkan baris ini */
+    justify-content: center;
+    font-size: 16px;
+    color: #fff;
+    text-decoration: none;
+    margin-top: 10px;
+  }
+  
+  .github-link img {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+  }
+  .container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+  }
+  
+  .left-section {
+    background-color: #111;
+    padding: 20px;
+    border-radius: 10px;
+    margin-right: 20px;
+    width: 350px;
+    align-items: flex-start; /* Tambahkan baris ini */
+  }
+  
+  .right-section {
+    background-color: #111;
+    padding: 20px;
+    border-radius: 10px;
+    flex: 1;
+  }
+  
+  .profile-picture {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+  
+  .profile-picture img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  h1, h2, h3, h4, h5 {
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  
+  .section-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+  
+  .list-item {
+    margin-bottom: 10px;
+  }
+  
+  .list-item i {
+    margin-right: 5px;
+  }
+  
+  .social-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+  }
+  
+  .social-link {
+    margin: 0 10px;
+    font-size: 24px;
+    color: #fff;
+  }
+  
+  .social-link:hover {
+    color: #007bff;
+  }
+  
+  .github-link:hover {
+    color: #007bff;
+  }
