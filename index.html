@@ -1,124 +1,155 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Qudum Portofolio</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Qudum Awang Dwi Cahyo</title>
     <style>
         body {
-            display: flex;
-            flex-wrap: wrap;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            font-family: Arial;
-        }
-        
-        header {
-            background-color: #333;
+            background-color: #222;
             color: #fff;
-            padding: 1rem;
-            width: 100%;
-        }
-
-        footer {
-            background-color: #333;
-            color: #fff;
-            padding: 1rem;
-            width: 100%;
-        }
-        
-        aside {
-            background-color: #ddd;
-            flex: 1 1 25%;
-            padding: 1rem;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        main {
-            flex: 3 1 75%;
-            padding: 1rem;
-        }
-        
-        .projects {
-            margin-bottom: 1rem;
         }
 
         .container {
-            max-width: 750px;
-            margin: 20px auto;
-            padding: 50px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-           }
-
-        .img {
-            margin: 10px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            width: 20%;
-            height: 20%;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
 
-        .icon-style {
-            height: 40px;
-            margin-left: 20px;
-            margin-top: 5px;
-          }
-          
-          .icon-style:hover {
-            background-color: grey;
-            padding: 5px;
-          }
+        .card {
+            background-color: #333;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 500px;
+            max-width: 90%;
+        }
 
+        .profile {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .profile img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            margin-top: 30px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            margin-bottom: 10px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        .contact-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .contact-info i {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+
+        a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
-
-    <header>
-        <h1>Qudum Awang Dwi Cahyo</h1>
-    </header>
-    
-    <img src="aku.jpg" class="img">
-    
     <div class="container">
-    <aside>
-        <h3>Biodata</h3>
-        <p>Saya Qudum Awang Dwi Cahyo. Saya adalah mahasiswa aktif di Universitas Muhammadiyah Surabaya Fakultas Teknik Program Studi Teknik Informatika. Dan memiliki ketertarikan terhadap pemrograman terutama web.</p>
-        &nbsp;
-        <p><b>Email : </b>qudum.awang.dwi-2022@ft.um-surabaya.ac.id</p>
-        <p><b>Contact   : </b>+62895901499771</p>
-    </aside>
-    </div>
-
-    <div class="container">
-    <main>
-        <h2>Proyek terakhir</h2>
-        <div class="project">
-            <h3>UAS Pemrograman Web</h3>
-            <img src="Screenshot (662).png" height="70%" width="70%">
-            &nbsp;
-            <p>Membuat website tentang Reservasi Tempat Parkir berbasis php dengan database dan di hosting menggunakan InfinityFree.</p>
+        <div class="card">
+            <div class="profile">
+                <img src="profile-picture.jpg" alt="Profile Picture">
+            </div>
+            <h1>Qudum Awang Dwi Cahyo</h1>
+            <div class="section">
+                <h2>DATA PRIBADI</h2>
+                <ul>
+                    <li>Tempat, Tanggal Lahir: Nganjuk, 20 Maret 2004</li>
+                    <li>Alamat: Kemantren Sidoarjo</li>
+                    <li>Nomor Telephone: +62 895 801 499 771</li>
+                    <li>Jenis Kelamin: Laki-laki</li>
+                    <li>Agama: Islam</li>
+                    <li>Kewarga Negaraan: Indonesia</li>
+                    <li>Email: awanggudum@gmail.com</li>
+                </ul>
+            </div>
+            <div class="section">
+                <h2>PENDIDIKAN</h2>
+                <ul>
+                    <li>SMA Negeri 1 Kertosono (2019-2022)</li>
+                    <li>Universitas Muhammadiyah Surabaya (2022-sekarang)</li>
+                </ul>
+            </div>
+            <div class="section">
+                <h2>PENGALAMAN</h2>
+                <ul>
+                    <li>Panitia Lomba Scratch Operator dan Dokumenter Acara (2023)</li>
+                    <li>Bertugas merekam jalannya lomba dan memastikan semua kegiatan berlangsung sesuai jadwal.</li>
+                    <li>Panitia Webinar Pembuatan Animasi Menggunakan Animaker Operator (2023)</li>
+                    <li>Bertugas memastikan webinar berjalan dengan lancar, termasuk pengaturan teknis dan memastikan kelancaran selama acara berlangsung.</li>
+                </ul>
+            </div>
+            <div class="section">
+                <h2>KEAHLIAN</h2>
+                <ul>
+                    <li>Web Developer</li>
+                    <li>User Interface Design</li>
+                    <li>Frontend Developer</li>
+                </ul>
+            </div>
+            <div class="section">
+                <h2>PROYEK</h2>
+                <ul>
+                    <li>Website Reservasi Parkir Web Developer</li>
+                    <li>Website CRUD tentang reservasi parkir berbasis php.</li>
+                    <li>Aplikasi Alarm Sholat 5 Waktu Salah satu developer dalam tim pengembangan.</li>
+                    <li>Aplikasi pengingat sholat 5 waktu menggunakan Java.</li>
+                </ul>
+            </div>
+            <div class="section">
+                <h2>KONTAK</h2>
+                <ul>
+                    <li class="contact-info"><i class="fas fa-phone"></i> +62 895 801 499 771</li>
+                    <li class="contact-info"><i class="fas fa-map-marker-alt"></i> Kemantren Sidoarjo</li>
+                    <li class="contact-info"><i class="fas fa-globe"></i> <a href="https://qudumawang.github.io/">https://qudumawang.github.io/</a></li>
+                </ul>
+            </div>
         </div>
-        </main>
     </div>
-
-
-
-    <footer>
-    <div>
-        <a href="https://github.com/QudumAwang" target="_blank">
-          <img src="https://w7.pngwing.com/pngs/8/421/png-transparent-github-computer-icons-icon-design-desktop-github-mammal-cat-like-mammal-carnivoran.png" class="icon-style" alt="Github icon">
-        </a>
-        <a href="https://www.instagram.com/udums_dc" target="_blank">
-          <img src="https://w7.pngwing.com/pngs/704/270/png-transparent-social-media-instagram-login-graphy-ig-instagram-icon-rectangle-magenta-mobile-phones.png" class="icon-style" alt="Instagram icon">
-        </a>
-      </div>
-      </footer>
-
 </body>
-
 </html>
