@@ -2,7 +2,7 @@
 
 This is my personal portfolio website built with HTML, CSS, and a little bit of JavaScript. You can check out my projects, experiences, and contact information here.
 
-🔗 Live Preview: https://username.github.io/portfolio/
+🔗 Live Preview: https://qudumawang.github.io/
 
 ## ✨ Features
 - Responsive Design
