@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Portofolio Dinamis</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; transition: background-color 0.3s; }
+        .hidden { display: none !important; }
+        #admin-panel { border: 2px dashed red; padding: 20px; margin-top: 20px; background: #fff9f9; }
+        #public-panel { border: 2px solid blue; padding: 20px; }
+        .form-section { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+    <!-- NAVBAR & LOGIN (TETAP SAMA) -->
+    <div style="text-align: right; margin-bottom: 20px;">
+        <button id="btn-show-login">Login Admin</button>
+        <button id="btn-logout" class="hidden">Logout</button>
+    </div>
+    <div id="login-section" class="hidden form-section">
+        <h3>Login Admin</h3>
+        <input type="email" id="login-email" placeholder="Email Admin">
+        <input type="password" id="login-password" placeholder="Password">
+        <button id="btn-login-submit">Masuk</button>
+    </div>
+
+    <!-- AREA PUBLIK (TETAP SAMA) -->
+    <div id="public-panel">
+        <h1>Profil Saya</h1>
+        <div id="tampil-biodata">Loading data...</div>
+        <h2>Tentang Saya</h2><p id="tampil-deskripsi">-</p>
+        <h2>Pendidikan</h2><ul id="tampil-pendidikan"></ul>
+        <h2>Skill</h2><ul id="tampil-skill"></ul>
+        <h2>Pengalaman & Projek</h2><ul id="tampil-pengalaman"></ul>
+    </div>
+
+    <!-- AREA ADMIN -->
+    <div id="admin-panel" class="hidden">
+        <h1 style="color: red;">DASHBOARD ADMIN (CRUD)</h1>
+        
+        <!-- 1. CRUD BIODATA -->
+        <div class="form-section">
+            <h3>1. Profil / Biodata</h3>
+            <input type="text" id="bio-nama" placeholder="Nama Lengkap"><br>
+            <input type="email" id="bio-email" placeholder="Email"><br>
+            <input type="text" id="bio-wa" placeholder="Nomor WA"><br>
+            <label>Warna Tema Web: <input type="color" id="bio-warna"></label><br><br>
+            
+            <!-- PERBAIKAN: Ubah input file menjadi input text untuk menyimpan path/URL gambar -->
+            <label>Link/Path Foto Profil: <input type="text" id="bio-foto-profil" placeholder="Misal: assets/foto.jpg atau Link GDrive" style="width: 300px;"></label><br>
+            <label>Link/Path Foto Full: <input type="text" id="bio-foto-full" placeholder="Misal: assets/full.jpg atau Link URL" style="width: 300px;"></label><br><br>
+
+            <div id="link-dinamis-container"></div>
+            <button id="btn-tambah-link">+ Tambah Link Eksternal</button><br><br>
+            <button id="btn-simpan-biodata">Simpan Biodata</button>
+        </div>
+
+        <!-- 2. CRUD DESKRIPSI (TETAP SAMA) -->
+        <div class="form-section">
+            <h3>2. Deskripsi Diri</h3>
+            <textarea id="desc-text" rows="4" style="width: 100%;" placeholder="Ceritakan tentang diri Anda..."></textarea><br>
+            <button id="btn-simpan-desc">Simpan Deskripsi</button>
+        </div>
+
+        <!-- 3. CRUD PENDIDIKAN -->
+        <div class="form-section">
+            <h3>3. Riwayat Pendidikan</h3>
+            <input type="text" id="edu-gelar" placeholder="Gelar (Opsional)"><br>
+            <input type="text" id="edu-instansi" placeholder="Asal Sekolah / Univ"><br>
+            <input type="text" id="edu-lokasi" placeholder="Lokasi"><br>
+            <input type="text" id="edu-jurusan" placeholder="Jurusan / Prodi"><br>
+            <input type="number" step="0.01" id="edu-ipk" placeholder="IPK"><br>
+            <label>Mulai: <input type="date" id="edu-mulai"></label><br>
+            <label>Lulus: <input type="date" id="edu-lulus"></label> 
+            <label><input type="checkbox" id="edu-masih-belajar"> Masih Menjalani</label><br>
+            
+            <!-- PERBAIKAN: Ubah input file menjadi input text -->
+            <label>Link Transkrip Nilai (PDF): <input type="text" id="edu-file" placeholder="Masukkan Link GDrive" style="width: 300px;"></label><br>
+            <button id="btn-tambah-edu">Tambah Pendidikan</button>
+        </div>
+
+        <!-- 4. CRUD SKILL (TETAP SAMA) -->
+        <div class="form-section">
+            <h3>4. Skill</h3>
+            <input type="text" id="skill-judul" placeholder="Nama Skill"><br>
+            <input type="text" id="skill-desc" placeholder="Deskripsi (Opsional)"><br>
+            <button id="btn-tambah-skill">Tambah Skill</button>
+        </div>
+
+        <!-- 5. CRUD PENGALAMAN / PROJEK -->
+        <div class="form-section">
+            <h3>5. Pengalaman / Projek / Sertifikasi</h3>
+            <input type="text" id="exp-judul" placeholder="Nama Projek/Pengalaman"><br>
+            <select id="exp-tipe-desc">
+                <option value="paragraf">Paragraf</option>
+                <option value="poin">Poin-poin</option>
+            </select><br>
+            <textarea id="exp-desc" rows="4" style="width: 100%;" placeholder="Deskripsi..."></textarea><br>
+            <input type="text" id="exp-link" placeholder="Link Projek (Opsional)"><br>
+            
+            <!-- PERBAIKAN: Ubah input file menjadi input text -->
+            <label>Link Bukti / Sertifikat: <input type="text" id="exp-file" placeholder="Link GDrive atau URL Web" style="width: 300px;"></label><br>
+            <button id="btn-tambah-exp">Tambah Data</button>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
