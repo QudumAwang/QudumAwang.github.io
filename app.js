@@ -1,8 +1,8 @@
 console.log("Memulai inisialisasi Firebase...");
 
-// PERBAIKAN: Import writeBatch untuk fitur Drag & Drop Save
+// PERBAIKAN: Menambahkan setPersistence dan browserSessionPersistence pada modul Auth
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, setDoc, getDoc, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -20,7 +20,6 @@ const db = getFirestore(app);
 let globalNamaBiodata = "Memuat...";
 let editStateId = { edu: null, skill: null, exp: null };
 
-// --- FUNGSI FORMAT TANGGAL INDONESIA ---
 function formatTanggalIndo(dateString) {
     if (!dateString || dateString === "Sekarang") return dateString;
     const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -29,7 +28,6 @@ function formatTanggalIndo(dateString) {
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-// --- DOM ELEMENTS UNTUK TOGGLE VIEW ---
 const publicLayout = document.getElementById('public-layout');
 const adminLayout = document.getElementById('admin-layout');
 const btnToggleAdmin = document.getElementById('btn-toggle-admin');
@@ -41,7 +39,10 @@ const btnCloseLoginModal = document.getElementById('btn-login-close');
 const topbarFoto = document.getElementById('topbar-foto');
 const profileDropdown = document.getElementById('profile-dropdown');
 
-// --- SISTEM AUTENTIKASI ---
+const expModal = document.getElementById('exp-modal-overlay');
+const expModalClose = document.getElementById('close-exp-modal');
+expModalClose.addEventListener('click', () => expModal.classList.add('hidden'));
+
 onAuthStateChanged(auth, (user) => {
     if (user) {
         btnToggleAdmin.classList.remove('hidden');
@@ -57,44 +58,40 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// LOGIKA OVERLAY LOGIN
 topbarFoto.addEventListener('click', () => {
-    if(!document.body.classList.contains('is-admin')) {
-        profileDropdown.classList.toggle('hidden');
-    }
+    if(!document.body.classList.contains('is-admin')) { profileDropdown.classList.toggle('hidden'); }
 });
 btnShowLoginModal.addEventListener('click', () => {
-    profileDropdown.classList.add('hidden');
-    loginOverlay.classList.remove('hidden');
+    profileDropdown.classList.add('hidden'); loginOverlay.classList.remove('hidden');
 });
 btnCloseLoginModal.addEventListener('click', () => loginOverlay.classList.add('hidden'));
 
 document.getElementById('toggle-password').addEventListener('click', function() {
     const passInput = document.getElementById('login-password');
-    if(passInput.type === 'password') {
-        passInput.type = 'text'; this.innerText = '🙈';
-    } else {
-        passInput.type = 'password'; this.innerText = '👁️';
-    }
+    if(passInput.type === 'password') { passInput.type = 'text'; this.innerText = '🙈'; } 
+    else { passInput.type = 'password'; this.innerText = '👁️'; }
 });
 
+// PERBAIKAN: Menerapkan browserSessionPersistence agar sesi hilang saat tab ditutup
 document.getElementById('btn-login-submit').addEventListener('click', () => {
     const email = document.getElementById('login-email').value;
     const pass = document.getElementById('login-password').value;
-    signInWithEmailAndPassword(auth, email, pass)
+    
+    setPersistence(auth, browserSessionPersistence)
         .then(() => {
-            alert("Login Berhasil!");
+            return signInWithEmailAndPassword(auth, email, pass);
+        })
+        .then(() => {
+            alert("Berhasil masuk ke Dashboard Admin!");
             document.getElementById('login-email').value = '';
             document.getElementById('login-password').value = '';
-            loginOverlay.classList.add('hidden');
-            publicLayout.classList.add('hidden');
-            adminLayout.classList.remove('hidden');
-            window.scrollTo(0,0);
+            loginOverlay.classList.add('hidden'); publicLayout.classList.add('hidden');
+            adminLayout.classList.remove('hidden'); window.scrollTo(0,0);
         })
-        .catch((error) => alert("Gagal Login."));
+        .catch((error) => alert("Gagal Login. Pastikan Email/Password benar. Error: " + error.message));
 });
 
-btnLogout.addEventListener('click', () => signOut(auth));
+btnLogout.addEventListener('click', () => { signOut(auth); alert("Berhasil Logout dari Admin."); });
 btnToggleAdmin.addEventListener('click', () => { publicLayout.classList.add('hidden'); adminLayout.classList.remove('hidden'); window.scrollTo(0,0);});
 btnCloseAdmin.addEventListener('click', () => { adminLayout.classList.add('hidden'); publicLayout.classList.remove('hidden'); window.scrollTo(0,0);});
 
@@ -127,9 +124,6 @@ document.getElementById('btn-batal-edit-edu').onclick = () => resetForm('edu');
 document.getElementById('btn-batal-edit-skill').onclick = () => resetForm('skill');
 document.getElementById('btn-batal-edit-exp').onclick = () => resetForm('exp');
 
-// ==========================================
-// FUNGSI DRAG AND DROP (Ubah Urutan)
-// ==========================================
 function enableDragAndDrop(containerId, collectionName, reloadFunction) {
     const container = document.getElementById(containerId);
     let draggedItem = null;
@@ -137,19 +131,17 @@ function enableDragAndDrop(containerId, collectionName, reloadFunction) {
     container.addEventListener('dragstart', (e) => {
         if (e.target.classList.contains('admin-list-item')) {
             draggedItem = e.target;
+            e.dataTransfer.effectAllowed = 'move';
             setTimeout(() => e.target.classList.add('dragging'), 0);
         }
     });
 
     container.addEventListener('dragover', (e) => {
-        e.preventDefault();
+        e.preventDefault(); e.dataTransfer.dropEffect = 'move';
         const afterElement = getDragAfterElement(container, e.clientY);
         if (draggedItem) {
-            if (afterElement == null) {
-                container.appendChild(draggedItem);
-            } else {
-                container.insertBefore(draggedItem, afterElement);
-            }
+            if (afterElement == null) { container.appendChild(draggedItem); } 
+            else { container.insertBefore(draggedItem, afterElement); }
         }
     });
 
@@ -158,17 +150,29 @@ function enableDragAndDrop(containerId, collectionName, reloadFunction) {
             draggedItem.classList.remove('dragging');
             draggedItem = null;
             
-            // Simpan urutan baru ke Firebase
             const batch = writeBatch(db);
             const items = container.querySelectorAll('.admin-list-item');
+            let hasChanged = false;
+
             items.forEach((item, index) => {
                 const docId = item.getAttribute('data-id');
-                const ref = doc(db, collectionName, docId);
-                batch.update(ref, { order: index });
+                const oldOrder = item.getAttribute('data-order');
+                if (oldOrder != index) {
+                    hasChanged = true;
+                    const ref = doc(db, collectionName, docId);
+                    batch.update(ref, { order: index });
+                }
             });
-            await batch.commit();
-            // Panggil ulang data untuk mensinkronkan tampilan publik
-            reloadFunction();
+            
+            if (hasChanged) {
+                try {
+                    await batch.commit();
+                    reloadFunction();
+                } catch (err) {
+                    alert("GAGAL MENYIMPAN URUTAN! Error: " + err.message);
+                    console.error("Firebase Batch Update Error:", err);
+                }
+            }
         }
     });
 
@@ -191,10 +195,10 @@ function enableDragAndDrop(containerId, collectionName, reloadFunction) {
 document.getElementById('btn-tambah-link').addEventListener('click', () => {
     const container = document.getElementById('link-dinamis-container');
     const div = document.createElement('div');
-    div.style.marginBottom = "5px";
+    div.style.marginBottom = "8px"; div.style.display = "flex"; div.style.gap = "10px";
     div.innerHTML = `
-        <input type="text" class="link-nama" placeholder="Teks Link" style="width:30%; display:inline-block;">
-        <input type="url" class="link-url" placeholder="URL Lengkap" style="width:50%; display:inline-block;">
+        <input type="text" class="link-nama" placeholder="Teks Link" style="width:35%; margin:0;">
+        <input type="url" class="link-url" placeholder="URL Lengkap" style="width:55%; margin:0;">
         <button class="btn-hapus" style="margin:0;" onclick="this.parentElement.remove()">X</button>
     `;
     container.appendChild(div);
@@ -226,15 +230,15 @@ document.getElementById('btn-simpan-biodata').addEventListener('click', async ()
 
     try {
         await setDoc(doc(db, "profil", "biodata_utama"), payload, { merge: true });
-        alert("Biodata disimpan!"); loadBiodata();
-    } catch (e) { alert("Error: " + e.message); }
+        alert("Biodata berhasil disimpan!"); loadBiodata();
+    } catch (e) { alert("GAGAL MENYIMPAN BIODATA! Error: " + e.message); console.error(e); }
 });
 
 document.getElementById('btn-simpan-desc').addEventListener('click', async () => {
     try {
         await setDoc(doc(db, "profil", "deskripsi_utama"), { teks: document.getElementById('desc-text').value || "" });
-        alert("Deskripsi tersimpan!"); loadBiodata();
-    } catch (e) { alert("Error: " + e.message); }
+        alert("Deskripsi berhasil tersimpan!"); loadBiodata();
+    } catch (e) { alert("GAGAL MENYIMPAN DESKRIPSI! Error: " + e.message); console.error(e); }
 });
 
 async function loadBiodata() {
@@ -248,31 +252,51 @@ async function loadBiodata() {
             if(data.foto_profil) document.getElementById('topbar-foto').src = data.foto_profil;
             if(data.foto_full) document.getElementById('tampil-foto-full').src = data.foto_full;
             
-            // PERBAIKAN: Render Kontak Tanpa Ikon
             let subInfoHTML = [];
             if(data.email) subInfoHTML.push(data.email);
             if(data.wa) subInfoHTML.push(data.wa);
             if(data.links && data.links.length > 0) {
-                data.links.forEach(l => {
-                    subInfoHTML.push(`<a href="${l.url}" target="_blank" style="color: var(--text-color);">${l.nama}</a>`);
-                });
+                data.links.forEach(l => { subInfoHTML.push(`<a href="${l.url}" target="_blank" style="color: var(--text-color);">${l.nama}</a>`); });
             }
             document.getElementById('tampil-kontak-link').innerHTML = subInfoHTML.join(' &nbsp;|&nbsp; ');
 
             document.documentElement.style.setProperty('--bg-color-1', data.bg1 || '#e0f2fe');
             document.documentElement.style.setProperty('--bg-color-2', data.bg2 || '#4fc3f7');
-            document.documentElement.style.setProperty('--text-color', data.text_color || '#1a252f');
-            document.documentElement.style.setProperty('--nav-color', data.nav_color || '#0277bd');
-            document.documentElement.style.setProperty('--btn-color', data.btn_color || '#00b4d8');
+            document.documentElement.style.setProperty('--text-color', data.text_color || '#1e293b');
+            document.documentElement.style.setProperty('--nav-color', data.nav_color || '#0f172a');
+            document.documentElement.style.setProperty('--btn-color', data.btn_color || '#0ea5e9');
+
+            document.getElementById('bio-nama').value = data.nama || ""; document.getElementById('bio-email').value = data.email || "";
+            document.getElementById('bio-wa').value = data.wa || ""; document.getElementById('bio-foto-profil').value = data.foto_profil || "";
+            document.getElementById('bio-foto-full').value = data.foto_full || "";
+            document.getElementById('color-bg1').value = data.bg1 || "#e0f2fe"; document.getElementById('color-bg2').value = data.bg2 || "#4fc3f7";
+            document.getElementById('color-text').value = data.text_color || "#1e293b";
+            document.getElementById('color-nav').value = data.nav_color || "#0f172a"; document.getElementById('color-btn').value = data.btn_color || "#0ea5e9";
+
+            const linkContainer = document.getElementById('link-dinamis-container');
+            linkContainer.innerHTML = '<h4 style="margin-bottom: 10px; color:#d97706;">Links Eksternal (LinkedIn, GitHub, dll)</h4>';
+            if(data.links && data.links.length > 0) {
+                data.links.forEach(l => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = "8px"; div.style.display = "flex"; div.style.gap = "10px";
+                    div.innerHTML = `
+                        <input type="text" class="link-nama" value="${l.nama}" placeholder="Teks Link" style="width:35%; margin:0;">
+                        <input type="url" class="link-url" value="${l.url}" placeholder="URL Lengkap" style="width:55%; margin:0;">
+                        <button class="btn-hapus" style="margin:0;" onclick="this.parentElement.remove()">X</button>
+                    `;
+                    linkContainer.appendChild(div);
+                });
+            }
         }
 
         const docDesc = await getDoc(doc(db, "profil", "deskripsi_utama"));
         if (docDesc.exists()) {
             document.getElementById('tampil-deskripsi').innerText = docDesc.data().teks || "Belum ada deskripsi.";
+            document.getElementById('desc-text').value = docDesc.data().teks || "";
         }
         
-        loadPendidikan(); // Panggil ini agar gelar tersisip ke nama
-    } catch (e) { console.error(e); }
+        loadPendidikan(); 
+    } catch (e) { console.error("Gagal Render Biodata:", e); }
 }
 
 // ==========================================
@@ -291,20 +315,19 @@ document.getElementById('btn-tambah-edu').addEventListener('click', async () => 
         lokasi: document.getElementById('edu-lokasi').value || "", jurusan: document.getElementById('edu-jurusan').value || "",
         ipk: document.getElementById('edu-ipk').value || "", mulai: document.getElementById('edu-mulai').value || "",
         lulus: document.getElementById('edu-masih-belajar').checked ? "Sekarang" : document.getElementById('edu-lulus').value,
-        bukti_file_url: document.getElementById('edu-file').value || "",
-        timestamp: Date.now()
+        bukti_file_url: document.getElementById('edu-file').value || "", timestamp: Date.now()
     };
 
     try {
         if (editStateId.edu) {
             await updateDoc(doc(db, "pendidikan", editStateId.edu), payload);
+            alert("Perubahan Pendidikan Berhasil Disimpan!");
         } else {
-            // Document baru diletakkan paling akhir (order = timestamp)
-            payload.order = Date.now();
-            await addDoc(collection(db, "pendidikan"), payload);
+            payload.order = Date.now(); await addDoc(collection(db, "pendidikan"), payload);
+            alert("Pendidikan Baru Berhasil Ditambahkan!");
         }
         resetForm('edu'); loadPendidikan();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert("GAGAL MENYIMPAN PENDIDIKAN! Error: " + e.message); console.error(e); }
 });
 
 async function loadPendidikan() {
@@ -315,24 +338,22 @@ async function loadPendidikan() {
         const querySnapshot = await getDocs(collection(db, "pendidikan"));
         pubContainer.innerHTML = ""; adminContainer.innerHTML = "";
         
-        // Sorting Lokal Berdasarkan field 'order' atau 'timestamp'
         let dataArray = [];
         querySnapshot.forEach(doc => dataArray.push({ id: doc.id, ...doc.data() }));
-        dataArray.sort((a, b) => (a.order || a.timestamp) - (b.order || b.timestamp));
+        dataArray.sort((a, b) => (a.order ?? a.timestamp) - (b.order ?? b.timestamp));
 
         let arrGelar = [];
 
-        dataArray.forEach((data) => {
+        dataArray.forEach((data, index) => {
             if(data.gelar && data.gelar.trim() !== "") arrGelar.push(data.gelar);
 
-            // --- PUBLIC UI ---
             const tglMulai = formatTanggalIndo(data.mulai);
             const tglLulus = formatTanggalIndo(data.lulus);
 
             const div = document.createElement('div'); div.className = "edu-card";
             div.innerHTML = `
                 <div class="edu-row-1">
-                    <span class="edu-row-1-kiri">${data.instansi} <small style="font-size:0.75em; font-weight:normal; opacity:0.8;">${data.lokasi ? `| ${data.lokasi}` : ''}</small></span>
+                    <span class="edu-row-1-kiri">${data.instansi} <small style="font-size:0.75em; font-weight:500; color:#64748b; margin-left:8px;">${data.lokasi ? `| ${data.lokasi}` : ''}</small></span>
                     <span class="edu-row-1-kanan">${tglMulai} - ${tglLulus}</span>
                 </div>
                 <div class="edu-row-2">
@@ -345,13 +366,13 @@ async function loadPendidikan() {
             `;
             pubContainer.appendChild(div);
 
-            // --- ADMIN UI ---
             const adm = document.createElement('div');
-            adm.className = "admin-list-item"; adm.setAttribute('draggable', true); adm.setAttribute('data-id', data.id);
+            adm.className = "admin-list-item"; adm.setAttribute('draggable', true); 
+            adm.setAttribute('data-id', data.id); adm.setAttribute('data-order', index);
             adm.innerHTML = `
                 <div class="admin-list-content">
-                    <div class="drag-handle">☰</div>
-                    <div><strong>${data.instansi}</strong> <br> <small>${data.jurusan || "-"}</small></div>
+                    <div class="drag-handle" title="Tarik untuk memindahkan">☰</div>
+                    <div><strong style="color:var(--nav-color);">${data.instansi}</strong> <br> <small>${data.jurusan || "-"}</small></div>
                 </div>
                 <div>
                     <button class="btn-edit" style="margin-right:5px;">Edit</button>
@@ -359,6 +380,7 @@ async function loadPendidikan() {
                 </div>
             `;
             adm.querySelector('.btn-edit').onclick = () => {
+                resetForm('edu'); 
                 document.getElementById('edu-instansi').value = data.instansi; document.getElementById('edu-gelar').value = data.gelar || "";
                 document.getElementById('edu-lokasi').value = data.lokasi || ""; document.getElementById('edu-jurusan').value = data.jurusan || "";
                 document.getElementById('edu-ipk').value = data.ipk || ""; document.getElementById('edu-mulai').value = data.mulai || "";
@@ -372,20 +394,27 @@ async function loadPendidikan() {
                 editStateId.edu = data.id;
                 document.getElementById('btn-tambah-edu').innerText = 'Simpan Perubahan Data';
                 document.getElementById('btn-batal-edit-edu').classList.remove('hidden');
+                window.scrollTo(0, document.getElementById('edu-instansi').offsetTop - 100);
             };
-            adm.querySelector('.btn-hapus').onclick = async () => { if(confirm(`Hapus ${data.instansi}?`)) { await deleteDoc(doc(db, "pendidikan", data.id)); loadPendidikan(); } };
+            adm.querySelector('.btn-hapus').onclick = async () => { 
+                if(confirm(`Yakin ingin menghapus ${data.instansi}?`)) { 
+                    try {
+                        await deleteDoc(doc(db, "pendidikan", data.id)); 
+                        loadPendidikan(); 
+                    } catch (err) {
+                        alert("GAGAL MENGHAPUS! Error: " + err.message);
+                    }
+                } 
+            };
             adminContainer.appendChild(adm);
         });
 
-        // Tempel gelar
         let teksNamaBawah = globalNamaBiodata;
         if(arrGelar.length > 0) teksNamaBawah += ", " + arrGelar.join(", ");
         document.getElementById('tampil-nama-besar').innerText = teksNamaBawah;
         
-        // Aktifkan Drag & Drop
         enableDragAndDrop('admin-list-edu', 'pendidikan', loadPendidikan);
-
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Gagal Render Pendidikan:", e); }
 }
 
 // ==========================================
@@ -399,12 +428,16 @@ document.getElementById('btn-tambah-skill').addEventListener('click', async () =
     try {
         if (editStateId.skill) {
             await updateDoc(doc(db, "skills", editStateId.skill), payload);
+            alert("Perubahan Skill Berhasil Disimpan!");
         } else {
-            payload.order = Date.now();
-            await addDoc(collection(db, "skills"), payload);
+            payload.order = Date.now(); await addDoc(collection(db, "skills"), payload);
+            alert("Skill Baru Berhasil Ditambahkan!");
         }
         resetForm('skill'); loadSkills(); 
-    } catch (e) {}
+    } catch (e) {
+        alert("GAGAL MENYIMPAN SKILL! Error: " + e.message); 
+        console.error(e);
+    }
 });
 
 async function loadSkills() {
@@ -416,22 +449,18 @@ async function loadSkills() {
         
         let dataArray = [];
         querySnapshot.forEach(doc => dataArray.push({ id: doc.id, ...doc.data() }));
-        dataArray.sort((a, b) => (a.order || a.timestamp) - (b.order || b.timestamp));
+        dataArray.sort((a, b) => (a.order ?? a.timestamp) - (b.order ?? b.timestamp));
 
-        dataArray.forEach((data) => {
-            // PERBAIKAN: Public UI Tanpa Deskripsi
-            const li = document.createElement('li');
-            li.className = "skill-card";
-            li.innerHTML = `${data.judul}`;
-            pubList.appendChild(li);
+        dataArray.forEach((data, index) => {
+            const li = document.createElement('li'); li.className = "skill-card"; li.innerHTML = `${data.judul}`; pubList.appendChild(li);
 
-            // Admin UI
             const adm = document.createElement('div');
-            adm.className = "admin-list-item"; adm.setAttribute('draggable', true); adm.setAttribute('data-id', data.id);
+            adm.className = "admin-list-item"; adm.setAttribute('draggable', true); 
+            adm.setAttribute('data-id', data.id); adm.setAttribute('data-order', index);
             adm.innerHTML = `
                 <div class="admin-list-content">
-                    <div class="drag-handle">☰</div>
-                    <div><strong>${data.judul}</strong></div>
+                    <div class="drag-handle" title="Tarik untuk memindahkan">☰</div>
+                    <div><strong style="color:var(--nav-color);">${data.judul}</strong></div>
                 </div>
                 <div>
                     <button class="btn-edit" style="margin-right:5px;">Edit</button>
@@ -439,18 +468,27 @@ async function loadSkills() {
                 </div>
             `;
             adm.querySelector('.btn-edit').onclick = () => {
-                document.getElementById('skill-judul').value = data.judul;
-                document.getElementById('skill-desc').value = data.deskripsi || "";
-                editStateId.skill = data.id;
-                document.getElementById('btn-tambah-skill').innerText = 'Simpan Perubahan Skill';
-                document.getElementById('btn-batal-edit-skill').classList.remove('hidden');
+                resetForm('skill');
+                document.getElementById('skill-judul').value = data.judul; document.getElementById('skill-desc').value = data.deskripsi || "";
+                editStateId.skill = data.id; document.getElementById('btn-tambah-skill').innerText = 'Simpan Perubahan Skill';
+                document.getElementById('btn-batal-edit-skill').classList.remove('hidden'); window.scrollTo(0, document.getElementById('skill-judul').offsetTop - 100);
             };
-            adm.querySelector('.btn-hapus').onclick = async () => { if(confirm(`Hapus skill ${data.judul}?`)) { await deleteDoc(doc(db, "skills", data.id)); loadSkills(); } };
+
+            adm.querySelector('.btn-hapus').onclick = async () => { 
+                if(confirm(`Yakin ingin menghapus skill ${data.judul}?`)) { 
+                    try {
+                        await deleteDoc(doc(db, "skills", data.id)); 
+                        loadSkills(); 
+                    } catch (err) {
+                        alert("GAGAL MENGHAPUS! Error: " + err.message);
+                    }
+                } 
+            };
             adminList.appendChild(adm);
         });
 
         enableDragAndDrop('admin-list-skill', 'skills', loadSkills);
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Gagal Render Skill:", e); }
 }
 
 // ==========================================
@@ -466,8 +504,8 @@ document.getElementById('exp-tipe-desc').addEventListener('change', function() {
 
 document.getElementById('btn-add-poin-input').addEventListener('click', () => {
     const container = document.getElementById('exp-poin-container'); const wrap = document.createElement('div');
-    wrap.style.display = "flex"; wrap.style.marginBottom = "5px";
-    wrap.innerHTML = `<input type="text" class="input-poin-item" placeholder="Isi poin..."><button class="btn-hapus" style="margin:5px 0 15px 5px;" onclick="this.parentElement.remove()">X</button>`;
+    wrap.style.display = "flex"; wrap.style.marginBottom = "8px"; wrap.style.gap = "10px";
+    wrap.innerHTML = `<input type="text" class="input-poin-item" placeholder="Ketik poin..." style="margin:0;"><button class="btn-hapus" style="margin:0;" onclick="this.parentElement.remove()">X</button>`;
     container.appendChild(wrap);
 });
 
@@ -489,12 +527,14 @@ document.getElementById('btn-tambah-exp').addEventListener('click', async () => 
     try {
         if (editStateId.exp) {
             await updateDoc(doc(db, "pengalaman", editStateId.exp), payload);
+            alert("Perubahan Pengalaman Berhasil Disimpan!");
         } else {
             payload.order = Date.now();
             await addDoc(collection(db, "pengalaman"), payload);
+            alert("Pengalaman Baru Berhasil Ditambahkan!");
         }
         resetForm('exp'); loadPengalaman();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert("GAGAL MENYIMPAN PENGALAMAN! Error: " + e.message); console.error(e); }
 });
 
 async function loadPengalaman() {
@@ -507,34 +547,46 @@ async function loadPengalaman() {
         
         let dataArray = [];
         querySnapshot.forEach(doc => dataArray.push({ id: doc.id, ...doc.data() }));
-        dataArray.sort((a, b) => (a.order || a.timestamp) - (b.order || b.timestamp));
+        dataArray.sort((a, b) => (a.order ?? a.timestamp) - (b.order ?? b.timestamp));
 
-        dataArray.forEach((data) => {
+        dataArray.forEach((data, index) => {
+            
             // --- PUBLIC UI GRID ---
             const card = document.createElement('div'); card.className = "exp-card";
-            const imgUrl = data.bukti_file_url ? data.bukti_file_url : "https://via.placeholder.com/300x160?text=Tanpa+Gambar";
+            const imgUrl = data.bukti_file_url ? data.bukti_file_url : "https://via.placeholder.com/300x160?text=Tidak+Ada+Gambar";
+            
             let contentHTML = "";
             if (data.tipe === 'poin' && data.poin_array) {
-                contentHTML = `<ul class="exp-desc-list">${data.poin_array.map(p => `<li>${p}</li>`).join('')}</ul>`;
-            } else { contentHTML = `<p class="exp-desc-text">${data.deskripsi || ""}</p>`; }
+                contentHTML = `<ul style="padding-left:20px;">${data.poin_array.map(p => `<li>${p}</li>`).join('')}</ul>`;
+            } else { contentHTML = `<p>${data.deskripsi || ""}</p>`; }
 
             card.innerHTML = `
-                <div class="exp-frame"><img src="${imgUrl}" onerror="this.src='https://via.placeholder.com/300x160?text=No+Image'"></div>
-                <div class="exp-content">
-                    <h3 style="font-size: 16px; margin-bottom: 10px; color:var(--nav-color);">${data.judul}</h3>
-                    ${contentHTML}
+                <div class="exp-frame"><img src="${imgUrl}" onerror="this.src='https://via.placeholder.com/300x160?text=Format+Bukan+Gambar'"></div>
+                <div class="exp-content" style="display:flex; align-items:center; justify-content:center;">
+                    <h3 style="font-size:16px; font-weight:700; color:var(--nav-color); text-align:center; margin:0;">${data.judul}</h3>
                 </div>
-                ${data.link ? `<div style="text-align:center; margin-top:auto;"><a href="${data.link}" target="_blank" style="color: var(--btn-color); text-decoration: none; font-weight: bold;">[Lihat Projek]</a></div>` : ''}
             `;
+            
+            card.onclick = () => {
+                document.getElementById('modal-exp-img').src = imgUrl;
+                document.getElementById('modal-exp-title').innerText = data.judul;
+                document.getElementById('modal-exp-desc').innerHTML = contentHTML;
+                const linkBtn = document.getElementById('modal-exp-link');
+                if(data.link && data.link.trim() !== "") {
+                    linkBtn.href = data.link; linkBtn.style.display = 'inline-block';
+                } else { linkBtn.style.display = 'none'; }
+                expModal.classList.remove('hidden');
+            };
             pubGrid.appendChild(card);
 
             // --- ADMIN UI ---
             const adm = document.createElement('div');
-            adm.className = "admin-list-item"; adm.setAttribute('draggable', true); adm.setAttribute('data-id', data.id);
+            adm.className = "admin-list-item"; adm.setAttribute('draggable', true); 
+            adm.setAttribute('data-id', data.id); adm.setAttribute('data-order', index);
             adm.innerHTML = `
                 <div class="admin-list-content">
-                    <div class="drag-handle">☰</div>
-                    <div><strong>${data.judul}</strong> <br> <small>Tipe: ${data.tipe}</small></div>
+                    <div class="drag-handle" title="Tarik untuk memindahkan">☰</div>
+                    <div><strong style="color:var(--nav-color);">${data.judul}</strong> <br> <small>Tipe: ${data.tipe}</small></div>
                 </div>
                 <div>
                     <button class="btn-edit" style="margin-right:5px;">Edit</button>
@@ -550,29 +602,40 @@ async function loadPengalaman() {
                     const cont = document.getElementById('exp-poin-container');
                     if(data.poin_array) {
                         data.poin_array.forEach(pt => {
-                            const wrap = document.createElement('div'); wrap.style.display = "flex"; wrap.style.marginBottom = "5px";
-                            wrap.innerHTML = `<input type="text" class="input-poin-item" value="${pt}"><button class="btn-hapus" style="margin:5px 0 15px 5px;" onclick="this.parentElement.remove()">X</button>`;
+                            const wrap = document.createElement('div'); wrap.style.display = "flex"; wrap.style.marginBottom = "8px"; wrap.style.gap = "10px";
+                            wrap.innerHTML = `<input type="text" class="input-poin-item" value="${pt}" style="margin:0;"><button class="btn-hapus" style="margin:0;" onclick="this.parentElement.remove()">X</button>`;
                             cont.appendChild(wrap);
                         });
                     }
                 } else { document.getElementById('exp-desc').value = data.deskripsi || ""; }
                 
                 editStateId.exp = data.id;
-                document.getElementById('btn-tambah-exp').innerText = 'Simpan Perubahan';
+                document.getElementById('btn-tambah-exp').innerText = 'Simpan Perubahan Pengalaman';
                 document.getElementById('btn-batal-edit-exp').classList.remove('hidden');
+                window.scrollTo(0, document.getElementById('exp-judul').offsetTop - 100);
             };
-            adm.querySelector('.btn-hapus').onclick = async () => { if(confirm(`Hapus ${data.judul}?`)) { await deleteDoc(doc(db, "pengalaman", data.id)); loadPengalaman(); } };
+            adm.querySelector('.btn-hapus').onclick = async () => { if(confirm(`Hapus pengalaman: ${data.judul}?`)) { await deleteDoc(doc(db, "pengalaman", data.id)); loadPengalaman(); } };
             adminList.appendChild(adm);
         });
 
         enableDragAndDrop('admin-list-exp', 'pengalaman', loadPengalaman);
-
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Gagal Render Pengalaman:", e); }
 }
 
-// INIT SEMUA
-window.onload = () => {
-    loadBiodata();
-    loadSkills();
-    loadPengalaman(); 
+// PERBAIKAN: Memastikan pemanggilan data tidak bertumpuk
+window.onload = async () => {
+    console.log("Halaman dimuat, mengambil data dari Firebase...");
+    
+    try {
+        // Gunakan Promise.all agar pengambilan data terjadi bersamaan dan lebih efisien
+        await Promise.all([
+            loadBiodata(),
+            loadPendidikan(),
+            loadSkills(),
+            loadPengalaman()
+        ]);
+        console.log("Data berhasil dimuat.");
+    } catch (error) {
+        console.error("Gagal memuat data awal:", error);
+    }
 };
