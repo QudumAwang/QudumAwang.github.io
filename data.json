@@ -1,0 +1,23 @@
+{
+    "profil": {
+        "nama": "Qudum Awang Dwi Cahyo",
+        "email": "awangqudum@gmail.com",
+        "wa": "0895801499771",
+        "foto_profil": "aset\\Qudum Awang Dwi Cahyo Wisuda.jpg",
+        "foto_full": "aset\\Qudum Awang Dwi Cahyo Wisuda.jpg",
+        "bg1": "#e0f2fe",
+        "bg2": "#4fc3f7",
+        "text_color": "#1e293b",
+        "nav_color": "#0f172a",
+        "btn_color": "#0ea5e9",
+        "links": [
+            {
+                "nama": "LinkedIn",
+                "url": "http://www.linkedin.com/in/qudum-awang-dwi-cahyo"
+            }
+        ]
+    },
+    "pendidikan": [],
+    "skills": [],
+    "pengalaman": []
+}
