@@ -1,86 +1,121 @@
-console.log("Memulai Web Portofolio Mode Lokal (Tanpa Firebase)...");
+console.log("Memulai Web Portofolio (Git-Backed CMS)...");
 
 // ==========================================
-// 1. SETUP DATABASE LOKAL (PENGGANTI FIREBASE)
+// 1. KONFIGURASI GITHUB API (PENTING!)
 // ==========================================
-// Ini adalah struktur dasar database kamu jika masih kosong
-const defaultData = {
-    profil: {},
-    pendidikan: [],
-    skills: [],
-    pengalaman: []
-};
+// Ganti dengan username dan nama repository kamu di GitHub
+const GITHUB_USERNAME = "QudumAwang"; // <-- GANTI INI DENGAN USERNAME GITHUB-MU
+const GITHUB_REPO = "QudumAwang.github.io";     // <-- GANTI INI DENGAN NAMA REPO-MU
+const FILE_PATH = "data.json";        // Nama file database kita
 
-// Variabel utama yang memegang semua data di memori
-let dbData = JSON.parse(JSON.stringify(defaultData)); 
+let dbData = { profil: {}, pendidikan: [], skills: [], pengalaman: [] };
+let fileSha = ""; // Kunci identifikasi file dari GitHub (wajib ada untuk update)
 let editStateId = { edu: null, skill: null, exp: null };
 
-// KATA SANDI ADMIN LOKAL (Ubah sesuai keinginanmu)
-const ADMIN_PASSWORD = "admin";
+// Token login akan disimpan sementara di sessionStorage agar tidak perlu login terus
+let GITHUB_TOKEN = sessionStorage.getItem('adminToken') || null;
+
 
 // ==========================================
-// 2. FUNGSI INISIALISASI DATA (BACA JSON/LOCAL)
+// 2. FUNGSI GITHUB API (CORE)
 // ==========================================
-async function initData() {
-    // 1. Cek apakah ada data yang sedang diedit di LocalStorage browser
-    const localData = localStorage.getItem('portofolioData');
-    
-    if (localData) {
-        dbData = JSON.parse(localData);
-        console.log("Data dimuat dari LocalStorage browser.");
-    } else {
-        // 2. Jika LocalStorage kosong, coba ambil file data.json dari server GitHub
-        try {
-            // Kita tambahkan cache-busting (?v=waktu) agar tidak mengambil file lama
-            const response = await fetch('data.json?v=' + new Date().getTime());
-            if (response.ok) {
-                dbData = await response.json();
-                console.log("Data dimuat dari file data.json GitHub.");
-                // Simpan ke local storage untuk proses edit selanjutnya
-                saveToLocalStorage(); 
-            } else {
-                console.warn("File data.json tidak ditemukan. Menggunakan data kosong.");
-            }
-        } catch (error) {
-            console.error("Gagal mengambil data.json (Mungkin dijalankan tanpa Live Server).", error);
+// Fungsi untuk MEMBACA file data.json dari GitHub
+async function fetchFromGitHub() {
+    try {
+        // Cache busting agar selalu dapat versi terbaru
+        const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${FILE_PATH}?t=${new Date().getTime()}`;
+        
+        const response = await fetch(url, {
+            headers: GITHUB_TOKEN ? { "Authorization": `token ${GITHUB_TOKEN}` } : {}
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            fileSha = data.sha; // Simpan SHA untuk keperluan Update
+            
+            // Konten dari GitHub di-encode dengan Base64, kita harus decode
+            // Perbaikan untuk karakter spesial/UTF-8 menggunakan decodeURIComponent dan escape
+            const decodedContent = decodeURIComponent(escape(atob(data.content)));
+            dbData = JSON.parse(decodedContent);
+            console.log("Data berhasil ditarik dari GitHub.");
+        } else if (response.status === 404) {
+            console.warn("File data.json belum ada di GitHub. Akan dibuat saat pertama kali simpan.");
+        } else {
+            console.error("Gagal menarik data dari GitHub:", response.status);
         }
+    } catch (e) {
+        console.error("Error Fetch GitHub API:", e);
     }
-    
-    // Render semua tampilan
     renderSemua();
 }
 
-function saveToLocalStorage() {
-    localStorage.setItem('portofolioData', JSON.stringify(dbData));
-}
-
-// Fitur Export: Download database menjadi file data.json untuk di-push ke GitHub
-document.getElementById('btn-export-json').addEventListener('click', () => {
-    const dataStr = JSON.stringify(dbData, null, 4); // Format rapi
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
+// PERBAIKAN: Login untuk GitHub API (Hanya butuh Token)
+document.getElementById('btn-login-submit').addEventListener('click', async () => {
+    const token = document.getElementById('login-password').value; // Masukkan Token di sini
     
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = "data.json"; // Nama file yang akan didownload
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    alert("File data.json berhasil diunduh!\n\nLangkah selanjutnya:\nTimpa file data.json yang lama di folder laptopmu dengan file ini, lalu Push ke GitHub agar perubahan ini bisa dilihat oleh semua orang.");
-});
-
-document.getElementById('btn-reset-local').addEventListener('click', () => {
-    if(confirm("Yakin ingin menghapus draf lokalmu dan memuat ulang data asli dari GitHub?")) {
-        localStorage.removeItem('portofolioData');
-        location.reload();
+    // Uji coba koneksi ke GitHub
+    try {
+        const response = await fetch("https://api.github.com/user", {
+            headers: { "Authorization": `token ${token}` }
+        });
+        
+        if(response.ok) {
+            const user = await response.json();
+            console.log("Login sukses sebagai:", user.login);
+            GITHUB_TOKEN = token;
+            sessionStorage.setItem('adminToken', token);
+            setAdminMode(true);
+            
+            // Auto-load data setelah login
+            await fetchFromGitHub(); 
+            alert("Login Berhasil!");
+            loginOverlay.classList.add('hidden');
+            adminLayout.classList.remove('hidden');
+        } else {
+            alert("Token Gagal: Periksa apakah token sudah benar & punya akses 'repo'.");
+        }
+    } catch (e) {
+        alert("Gagal koneksi ke GitHub API.");
     }
 });
 
+// PERBAIKAN: Push to GitHub dengan Debugging
+async function pushToGitHub() {
+    if (!GITHUB_TOKEN) return alert("Belum Login Admin!");
+
+    // Cek apakah file sudah ada SHA-nya (identitas file di GitHub)
+    if (!fileSha) {
+        // Jika file belum ada, kita perlu ambil SHA-nya dulu atau fetch sekali lagi
+        await fetchFromGitHub();
+    }
+
+    const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${FILE_PATH}`;
+    const payload = {
+        message: "Update portofolio via Admin Dashboard",
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(dbData, null, 4)))),
+        sha: fileSha // WAJIB ada SHA!
+    };
+
+    const response = await fetch(url, {
+        method: "PUT",
+        headers: { "Authorization": `token ${GITHUB_TOKEN}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+        fileSha = result.content.sha; // Update SHA terbaru
+        alert("Data berhasil tersimpan ke GitHub!");
+        return true;
+    } else {
+        console.error("Gagal Push GitHub:", result);
+        alert("Gagal Push! Pesan: " + result.message);
+        return false;
+    }
+}
 
 // ==========================================
-// 3. LOGIKA UI & LOGIN LOKAL
+// 3. LOGIKA UI & SISTEM LOGIN GITHUB
 // ==========================================
 function formatTanggalIndo(dateString) {
     if (!dateString || dateString === "Sekarang") return dateString;
@@ -104,24 +139,15 @@ const expModal = document.getElementById('exp-modal-overlay');
 const expModalClose = document.getElementById('close-exp-modal');
 expModalClose.addEventListener('click', () => expModal.classList.add('hidden'));
 
-// Cek status login saat halaman dimuat
-if (sessionStorage.getItem('isAdminLoggedIn')) {
-    setAdminMode(true);
-} else {
-    setAdminMode(false);
-}
+if (GITHUB_TOKEN) { setAdminMode(true); } else { setAdminMode(false); }
 
 function setAdminMode(isLoggedIn) {
     if (isLoggedIn) {
-        btnToggleAdmin.classList.remove('hidden');
-        btnLogout.classList.remove('hidden');
-        document.body.classList.add('is-admin');
-        profileDropdown.classList.add('hidden');
+        btnToggleAdmin.classList.remove('hidden'); btnLogout.classList.remove('hidden');
+        document.body.classList.add('is-admin'); profileDropdown.classList.add('hidden');
     } else {
-        btnToggleAdmin.classList.add('hidden');
-        btnLogout.classList.add('hidden');
-        adminLayout.classList.add('hidden');
-        publicLayout.classList.remove('hidden');
+        btnToggleAdmin.classList.add('hidden'); btnLogout.classList.add('hidden');
+        adminLayout.classList.add('hidden'); publicLayout.classList.remove('hidden');
         document.body.classList.remove('is-admin');
     }
 }
@@ -136,28 +162,41 @@ document.getElementById('toggle-password').addEventListener('click', function() 
     else { passInput.type = 'password'; this.innerText = '👁️'; }
 });
 
-// Sistem Login Lokal (Cek Password)
-document.getElementById('btn-login-submit').addEventListener('click', () => {
-    const pass = document.getElementById('login-password').value;
+// PERBAIKAN: Login menggunakan Personal Access Token (PAT) GitHub
+document.getElementById('btn-login-submit').addEventListener('click', async () => {
+    const token = document.getElementById('login-password').value; // Ambil token dari input password
     
-    if (pass === ADMIN_PASSWORD) {
-        alert("Berhasil masuk ke Dashboard Admin!");
-        sessionStorage.setItem('isAdminLoggedIn', 'true'); // Simpan sesi sementara di tab
-        document.getElementById('login-password').value = '';
-        loginOverlay.classList.add('hidden'); 
-        publicLayout.classList.add('hidden');
-        adminLayout.classList.remove('hidden'); 
-        setAdminMode(true);
-        window.scrollTo(0,0);
-    } else {
-        alert("Password Salah!");
+    if(!token.startsWith("ghp_")) {
+        return alert("Format Token tidak valid. Pastikan Anda memasukkan Personal Access Token (PAT) GitHub yang berawalan 'ghp_'.");
+    }
+
+    // Tes koneksi API dengan token tersebut
+    try {
+        const response = await fetch("https://api.github.com/user", {
+            headers: { "Authorization": `token ${token}` }
+        });
+        
+        if(response.ok) {
+            alert("Verifikasi Berhasil! Selamat Datang di Dashboard Admin.");
+            GITHUB_TOKEN = token;
+            sessionStorage.setItem('adminToken', token); // Simpan sementara di memori tab
+            
+            document.getElementById('login-password').value = '';
+            loginOverlay.classList.add('hidden'); publicLayout.classList.add('hidden');
+            adminLayout.classList.remove('hidden'); setAdminMode(true); window.scrollTo(0,0);
+            
+            // Reload data menggunakan token baru agar mendapat akses tulis penuh
+            fetchFromGitHub();
+        } else {
+            alert("Token GitHub Ditolak. Pastikan token benar dan memiliki akses (repo).");
+        }
+    } catch (e) {
+        alert("Gagal melakukan koneksi ke GitHub.");
     }
 });
 
 btnLogout.addEventListener('click', () => { 
-    sessionStorage.removeItem('isAdminLoggedIn');
-    setAdminMode(false);
-    alert("Berhasil Logout."); 
+    GITHUB_TOKEN = null; sessionStorage.removeItem('adminToken'); setAdminMode(false); alert("Berhasil Logout."); 
 });
 
 btnToggleAdmin.addEventListener('click', () => { publicLayout.classList.add('hidden'); adminLayout.classList.remove('hidden'); window.scrollTo(0,0);});
@@ -192,8 +231,8 @@ document.getElementById('btn-batal-edit-edu').onclick = () => resetForm('edu');
 document.getElementById('btn-batal-edit-skill').onclick = () => resetForm('skill');
 document.getElementById('btn-batal-edit-exp').onclick = () => resetForm('exp');
 
-// Fitur Drag & Drop untuk Array Lokal
-function enableDragAndDropLocal(containerId, arrayData, renderCallback) {
+// Fitur Drag & Drop untuk Array
+function enableDragAndDropArray(containerId, arrayData, renderCallback) {
     const container = document.getElementById(containerId);
     let draggedItemIndex = null;
 
@@ -215,25 +254,27 @@ function enableDragAndDropLocal(containerId, arrayData, renderCallback) {
         }
     });
 
-    container.addEventListener('dragend', (e) => {
+    // PERBAIKAN: Setelah drag selesai, langsung Push ke GitHub!
+    container.addEventListener('dragend', async (e) => {
         const draggedElement = document.querySelector('.dragging');
         if (draggedElement) {
             draggedElement.classList.remove('dragging');
             
-            // Baca urutan baru dari DOM
             const newArray = [];
             const items = container.querySelectorAll('.admin-list-item');
-            items.forEach(item => {
+            let urutanBerubah = false;
+            
+            items.forEach((item, index) => {
                 const oldIndex = parseInt(item.getAttribute('data-index'));
                 newArray.push(arrayData[oldIndex]);
+                if(oldIndex !== index) urutanBerubah = true;
             });
             
-            // Update array utama
-            arrayData.length = 0;
-            arrayData.push(...newArray);
-            
-            saveToLocalStorage();
-            renderCallback();
+            if (urutanBerubah) {
+                arrayData.length = 0; arrayData.push(...newArray); // Update array lokal
+                await pushToGitHub(); // Langsung Tembak ke GitHub Server
+                renderCallback();
+            }
         }
     });
 
@@ -251,10 +292,9 @@ function enableDragAndDropLocal(containerId, arrayData, renderCallback) {
 
 
 // ==========================================
-// 4. LOGIKA CRUD LOCAL DATABASE
+// 4. LOGIKA CRUD
 // ==========================================
 
-// --- RENDER SEMUA ---
 function renderSemua() {
     renderBiodata();
     renderPendidikan();
@@ -275,7 +315,7 @@ document.getElementById('btn-tambah-link').addEventListener('click', () => {
     container.appendChild(div);
 });
 
-document.getElementById('btn-simpan-biodata').addEventListener('click', () => {
+document.getElementById('btn-simpan-biodata').addEventListener('click', async () => {
     dbData.profil.nama = document.getElementById('bio-nama').value || "";
     dbData.profil.email = document.getElementById('bio-email').value || "";
     dbData.profil.wa = document.getElementById('bio-wa').value || "";
@@ -297,14 +337,14 @@ document.getElementById('btn-simpan-biodata').addEventListener('click', () => {
     }
     dbData.profil.links = linksArray;
 
-    saveToLocalStorage();
-    alert("Biodata berhasil disimpan ke draf!"); renderSemua();
+    const sukses = await pushToGitHub();
+    if(sukses) { alert("Biodata berhasil disimpan ke GitHub!"); renderSemua(); }
 });
 
-document.getElementById('btn-simpan-desc').addEventListener('click', () => {
+document.getElementById('btn-simpan-desc').addEventListener('click', async () => {
     dbData.profil.deskripsi = document.getElementById('desc-text').value || "";
-    saveToLocalStorage();
-    alert("Deskripsi berhasil disimpan ke draf!"); renderSemua();
+    const sukses = await pushToGitHub();
+    if(sukses) { alert("Deskripsi berhasil disimpan ke GitHub!"); renderSemua(); }
 });
 
 function renderBiodata() {
@@ -354,9 +394,11 @@ function renderBiodata() {
         });
     }
 
-    // Tempel gelar ke Nama (diambil dari data pendidikan)
-    let arrGelar = dbData.pendidikan.filter(p => p.gelar && p.gelar.trim() !== "").map(p => p.gelar);
-    if(arrGelar.length > 0) namaLengkap += ", " + arrGelar.join(", ");
+    // Tempel gelar
+    if(dbData.pendidikan && dbData.pendidikan.length > 0) {
+        let arrGelar = dbData.pendidikan.filter(p => p.gelar && p.gelar.trim() !== "").map(p => p.gelar);
+        if(arrGelar.length > 0) namaLengkap += ", " + arrGelar.join(", ");
+    }
     document.getElementById('tampil-nama-besar').innerText = namaLengkap;
 }
 
@@ -365,7 +407,7 @@ document.getElementById('edu-masih-belajar').addEventListener('change', function
     document.getElementById('edu-lulus').disabled = this.checked;
 });
 
-document.getElementById('btn-tambah-edu').addEventListener('click', () => {
+document.getElementById('btn-tambah-edu').addEventListener('click', async () => {
     const instansi = document.getElementById('edu-instansi').value;
     if (!instansi) return alert("Asal Sekolah wajib diisi!");
     
@@ -377,14 +419,11 @@ document.getElementById('btn-tambah-edu').addEventListener('click', () => {
         bukti_file_url: document.getElementById('edu-file').value || ""
     };
 
-    if (editStateId.edu !== null) {
-        dbData.pendidikan[editStateId.edu] = payload;
-    } else {
-        dbData.pendidikan.push(payload);
-    }
+    if (editStateId.edu !== null) { dbData.pendidikan[editStateId.edu] = payload; } 
+    else { dbData.pendidikan.push(payload); }
     
-    saveToLocalStorage();
-    resetForm('edu'); renderSemua();
+    const sukses = await pushToGitHub();
+    if(sukses) { resetForm('edu'); renderSemua(); }
 });
 
 function renderPendidikan() {
@@ -392,6 +431,7 @@ function renderPendidikan() {
     const adminContainer = document.getElementById('admin-list-edu');
     
     pubContainer.innerHTML = ""; adminContainer.innerHTML = "";
+    if(!dbData.pendidikan) return;
 
     dbData.pendidikan.forEach((data, index) => {
         const tglMulai = formatTanggalIndo(data.mulai);
@@ -442,37 +482,37 @@ function renderPendidikan() {
             document.getElementById('btn-batal-edit-edu').classList.remove('hidden');
             window.scrollTo(0, document.getElementById('edu-instansi').offsetTop - 100);
         };
-        adm.querySelector('.btn-hapus').onclick = () => { 
+        adm.querySelector('.btn-hapus').onclick = async () => { 
             if(confirm(`Yakin ingin menghapus ${data.instansi}?`)) { 
                 dbData.pendidikan.splice(index, 1);
-                saveToLocalStorage(); renderSemua(); 
+                const sukses = await pushToGitHub(); if(sukses) renderSemua(); 
             } 
         };
         adminContainer.appendChild(adm);
     });
     
-    enableDragAndDropLocal('admin-list-edu', dbData.pendidikan, renderSemua);
+    enableDragAndDropArray('admin-list-edu', dbData.pendidikan, renderSemua);
 }
 
 // --- SKILLS ---
-document.getElementById('btn-tambah-skill').addEventListener('click', () => {
+document.getElementById('btn-tambah-skill').addEventListener('click', async () => {
     const judul = document.getElementById('skill-judul').value;
     if (!judul) return alert("Nama skill wajib diisi!");
     const payload = { judul: judul, deskripsi: document.getElementById('skill-desc').value || "" };
 
-    if (editStateId.skill !== null) {
-        dbData.skills[editStateId.skill] = payload;
-    } else {
-        dbData.skills.push(payload);
-    }
-    saveToLocalStorage(); resetForm('skill'); renderSemua(); 
+    if (editStateId.skill !== null) { dbData.skills[editStateId.skill] = payload; } 
+    else { dbData.skills.push(payload); }
+    
+    const sukses = await pushToGitHub();
+    if(sukses) { resetForm('skill'); renderSemua(); }
 });
 
 function renderSkills() {
     const pubList = document.getElementById('tampil-skill');
     const adminList = document.getElementById('admin-list-skill');
     pubList.innerHTML = ""; adminList.innerHTML = "";
-    
+    if(!dbData.skills) return;
+
     dbData.skills.forEach((data, index) => {
         const li = document.createElement('li'); li.className = "skill-card"; li.innerHTML = `${data.judul}`; pubList.appendChild(li);
 
@@ -494,14 +534,14 @@ function renderSkills() {
             editStateId.skill = index; document.getElementById('btn-tambah-skill').innerText = 'Simpan Perubahan';
             document.getElementById('btn-batal-edit-skill').classList.remove('hidden'); window.scrollTo(0, document.getElementById('skill-judul').offsetTop - 100);
         };
-        adm.querySelector('.btn-hapus').onclick = () => { 
+        adm.querySelector('.btn-hapus').onclick = async () => { 
             if(confirm(`Yakin ingin menghapus ${data.judul}?`)) { 
-                dbData.skills.splice(index, 1); saveToLocalStorage(); renderSemua(); 
+                dbData.skills.splice(index, 1); const sukses = await pushToGitHub(); if(sukses) renderSemua(); 
             } 
         };
         adminList.appendChild(adm);
     });
-    enableDragAndDropLocal('admin-list-skill', dbData.skills, renderSemua);
+    enableDragAndDropArray('admin-list-skill', dbData.skills, renderSemua);
 }
 
 // --- PENGALAMAN ---
@@ -520,7 +560,7 @@ document.getElementById('btn-add-poin-input').addEventListener('click', () => {
     container.appendChild(wrap);
 });
 
-document.getElementById('btn-tambah-exp').addEventListener('click', () => {
+document.getElementById('btn-tambah-exp').addEventListener('click', async () => {
     const judul = document.getElementById('exp-judul').value;
     if (!judul) return alert("Nama pengalaman wajib diisi!");
     
@@ -534,18 +574,18 @@ document.getElementById('btn-tambah-exp').addEventListener('click', () => {
         link: document.getElementById('exp-link').value || "", bukti_file_url: document.getElementById('exp-file').value || ""
     };
 
-    if (editStateId.exp !== null) {
-        dbData.pengalaman[editStateId.exp] = payload;
-    } else {
-        dbData.pengalaman.push(payload);
-    }
-    saveToLocalStorage(); resetForm('exp'); renderSemua();
+    if (editStateId.exp !== null) { dbData.pengalaman[editStateId.exp] = payload; } 
+    else { dbData.pengalaman.push(payload); }
+    
+    const sukses = await pushToGitHub();
+    if(sukses) { resetForm('exp'); renderSemua(); }
 });
 
 function renderPengalaman() {
     const pubGrid = document.getElementById('tampil-pengalaman');
     const adminList = document.getElementById('admin-list-exp');
     pubGrid.innerHTML = ""; adminList.innerHTML = "";
+    if(!dbData.pengalaman) return;
 
     dbData.pengalaman.forEach((data, index) => {
         // --- PUBLIC UI ---
@@ -610,20 +650,20 @@ function renderPengalaman() {
             document.getElementById('btn-batal-edit-exp').classList.remove('hidden');
             window.scrollTo(0, document.getElementById('exp-judul').offsetTop - 100);
         };
-        adm.querySelector('.btn-hapus').onclick = () => { 
+        adm.querySelector('.btn-hapus').onclick = async () => { 
             if(confirm(`Yakin ingin menghapus ${data.judul}?`)) { 
-                dbData.pengalaman.splice(index, 1); saveToLocalStorage(); renderSemua(); 
+                dbData.pengalaman.splice(index, 1); const sukses = await pushToGitHub(); if(sukses) renderSemua(); 
             } 
         };
         adminList.appendChild(adm);
     });
 
-    enableDragAndDropLocal('admin-list-exp', dbData.pengalaman, renderSemua);
+    enableDragAndDropArray('admin-list-exp', dbData.pengalaman, renderSemua);
 }
 
 // ==========================================
 // INISIALISASI PERTAMA KALI
 // ==========================================
 window.onload = () => {
-    initData();
+    fetchFromGitHub();
 };

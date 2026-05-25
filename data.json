@@ -13,12 +13,44 @@
         "links": [
             {
                 "nama": "LinkedIn",
-                "url": "http://www.linkedin.com/in/qudum-awang-dwi-cahyo"
+                "url": "anu"
             }
         ],
         "deskripsi": "Halo! Saya Qudum Awang Dwi Cahyo, lulusan Teknik Informatika dari Universitas Muhammadiyah Surabaya. Saya adalah seorang pengembang yang bersemangat dalam menciptakan aplikasi web yang bersih (clean), mudah dirawat (maintainable), dan ramah pengguna (user-friendly).\n\nPerjalanan saya berfokus pada mengubah ide-ide kompleks menjadi solusi digital yang fungsional. Saya memiliki spesialisasi dalam pengembangan front-end dan desain UI/UX, dengan fondasi yang kuat dalam logika back-end, pengembangan REST API, serta manajemen basis data. Saya sangat menikmati pemecahan masalah teknis, baik itu dalam mengoptimalkan performa maupun menyempurnakan antarmuka pengguna untuk meningkatkan aksesibilitas."
     },
-    "pendidikan": [],
-    "skills": [],
+    "pendidikan": [
+        {
+            "instansi": "Universitas Muhammadiyah Surabaya",
+            "gelar": "S. Kom",
+            "lokasi": "Surabaya",
+            "jurusan": "Teknik Informatika",
+            "ipk": "3.74",
+            "mulai": "2022-08-31",
+            "lulus": "2026-02-05",
+            "bukti_file_url": ""
+        }
+    ],
+    "skills": [
+        {
+            "judul": "Framework Laravel",
+            "deskripsi": ""
+        },
+        {
+            "judul": "Framework React Native",
+            "deskripsi": ""
+        },
+        {
+            "judul": "MySQL",
+            "deskripsi": ""
+        },
+        {
+            "judul": "Kotlin (Android Studio)",
+            "deskripsi": ""
+        },
+        {
+            "judul": "Firebase",
+            "deskripsi": ""
+        }
+    ],
     "pengalaman": []
 }
