@@ -1,28 +1,38 @@
 console.log("Memulai Web Portofolio (Git-Backed CMS)...");
 
 // ==========================================
-// 1. KONFIGURASI GITHUB API (PENTING!)
+// 1. KONFIGURASI GITHUB API
 // ==========================================
-// Ganti dengan username dan nama repository kamu di GitHub
-const GITHUB_USERNAME = "QudumAwang"; // <-- GANTI INI DENGAN USERNAME GITHUB-MU
-const GITHUB_REPO = "QudumAwang.github.io";     // <-- GANTI INI DENGAN NAMA REPO-MU
-const FILE_PATH = "data.json";        // Nama file database kita
+const GITHUB_USERNAME = "QudumAwang"; 
+const GITHUB_REPO = "QudumAwang.github.io";     
+const FILE_PATH = "data.json";        
 
+// Database lokal di memori
 let dbData = { profil: {}, pendidikan: [], skills: [], pengalaman: [] };
-let fileSha = ""; // Kunci identifikasi file dari GitHub (wajib ada untuk update)
+let fileSha = ""; 
 let editStateId = { edu: null, skill: null, exp: null };
-
-// Token login akan disimpan sementara di sessionStorage agar tidak perlu login terus
 let GITHUB_TOKEN = sessionStorage.getItem('adminToken') || null;
 
 
 // ==========================================
-// 2. FUNGSI GITHUB API (CORE)
+// 2. FUNGSI FETCH CEPAT (CACHE SESSION)
 // ==========================================
-// Fungsi untuk MEMBACA file data.json dari GitHub
 async function fetchFromGitHub() {
+    // PERBAIKAN KINERJA: Cek apakah data sudah ada di Session Storage
+    const cachedData = sessionStorage.getItem('portfolioCacheData');
+    const cachedSha = sessionStorage.getItem('portfolioCacheSha');
+
+    // Jika admin tidak login, dan cache ada, langsung pakai cache agar kilat!
+    if (cachedData && cachedSha && !GITHUB_TOKEN) {
+        console.log("Data dimuat INSTAN dari Cache Browser.");
+        dbData = JSON.parse(cachedData);
+        fileSha = cachedSha;
+        renderSemua();
+        return;
+    }
+
     try {
-        // Cache busting agar selalu dapat versi terbaru
+        console.log("Mendownload data terbaru dari GitHub...");
         const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${FILE_PATH}?t=${new Date().getTime()}`;
         
         const response = await fetch(url, {
@@ -31,12 +41,15 @@ async function fetchFromGitHub() {
 
         if (response.ok) {
             const data = await response.json();
-            fileSha = data.sha; // Simpan SHA untuk keperluan Update
+            fileSha = data.sha; 
             
-            // Konten dari GitHub di-encode dengan Base64, kita harus decode
-            // Perbaikan untuk karakter spesial/UTF-8 menggunakan decodeURIComponent dan escape
             const decodedContent = decodeURIComponent(escape(atob(data.content)));
             dbData = JSON.parse(decodedContent);
+            
+            // Simpan ke Cache agar navigasi selanjutnya kilat
+            sessionStorage.setItem('portfolioCacheData', JSON.stringify(dbData));
+            sessionStorage.setItem('portfolioCacheSha', fileSha);
+            
             console.log("Data berhasil ditarik dari GitHub.");
         } else if (response.status === 404) {
             console.warn("File data.json belum ada di GitHub. Akan dibuat saat pertama kali simpan.");
@@ -49,43 +62,10 @@ async function fetchFromGitHub() {
     renderSemua();
 }
 
-// PERBAIKAN: Login untuk GitHub API (Hanya butuh Token)
-document.getElementById('btn-login-submit').addEventListener('click', async () => {
-    const token = document.getElementById('login-password').value; // Masukkan Token di sini
-    
-    // Uji coba koneksi ke GitHub
-    try {
-        const response = await fetch("https://api.github.com/user", {
-            headers: { "Authorization": `token ${token}` }
-        });
-        
-        if(response.ok) {
-            const user = await response.json();
-            console.log("Login sukses sebagai:", user.login);
-            GITHUB_TOKEN = token;
-            sessionStorage.setItem('adminToken', token);
-            setAdminMode(true);
-            
-            // Auto-load data setelah login
-            await fetchFromGitHub(); 
-            alert("Login Berhasil!");
-            loginOverlay.classList.add('hidden');
-            adminLayout.classList.remove('hidden');
-        } else {
-            alert("Token Gagal: Periksa apakah token sudah benar & punya akses 'repo'.");
-        }
-    } catch (e) {
-        alert("Gagal koneksi ke GitHub API.");
-    }
-});
-
-// PERBAIKAN: Push to GitHub dengan Debugging
 async function pushToGitHub() {
     if (!GITHUB_TOKEN) return alert("Belum Login Admin!");
 
-    // Cek apakah file sudah ada SHA-nya (identitas file di GitHub)
     if (!fileSha) {
-        // Jika file belum ada, kita perlu ambil SHA-nya dulu atau fetch sekali lagi
         await fetchFromGitHub();
     }
 
@@ -93,26 +73,34 @@ async function pushToGitHub() {
     const payload = {
         message: "Update portofolio via Admin Dashboard",
         content: btoa(unescape(encodeURIComponent(JSON.stringify(dbData, null, 4)))),
-        sha: fileSha // WAJIB ada SHA!
+        sha: fileSha 
     };
 
-    const response = await fetch(url, {
-        method: "PUT",
-        headers: { "Authorization": `token ${GITHUB_TOKEN}`, "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    });
+    try {
+        const response = await fetch(url, {
+            method: "PUT",
+            headers: { "Authorization": `token ${GITHUB_TOKEN}`, "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
 
-    const result = await response.json();
-    if (response.ok) {
-        fileSha = result.content.sha; // Update SHA terbaru
-        alert("Data berhasil tersimpan ke GitHub!");
-        return true;
-    } else {
-        console.error("Gagal Push GitHub:", result);
-        alert("Gagal Push! Pesan: " + result.message);
+        const result = await response.json();
+        if (response.ok) {
+            fileSha = result.content.sha; 
+            // Hapus cache lokal agar fetch selanjutnya ambil data baru
+            sessionStorage.removeItem('portfolioCacheData'); 
+            alert("Data berhasil tersimpan ke GitHub!");
+            return true;
+        } else {
+            console.error("Gagal Push GitHub:", result);
+            alert("Gagal Push! Pesan: " + result.message);
+            return false;
+        }
+    } catch (e) {
+        alert("Gagal koneksi ke GitHub saat menyimpan.");
         return false;
     }
 }
+
 
 // ==========================================
 // 3. LOGIKA UI & SISTEM LOGIN GITHUB
@@ -145,14 +133,16 @@ function setAdminMode(isLoggedIn) {
     if (isLoggedIn) {
         btnToggleAdmin.classList.remove('hidden'); btnLogout.classList.remove('hidden');
         document.body.classList.add('is-admin'); profileDropdown.classList.add('hidden');
+        document.getElementById('btn-show-login-modal').classList.add('hidden'); // Sembunyikan tombol login d dropdown
     } else {
         btnToggleAdmin.classList.add('hidden'); btnLogout.classList.add('hidden');
         adminLayout.classList.add('hidden'); publicLayout.classList.remove('hidden');
         document.body.classList.remove('is-admin');
+        document.getElementById('btn-show-login-modal').classList.remove('hidden');
     }
 }
 
-topbarFoto.addEventListener('click', () => { if(!document.body.classList.contains('is-admin')) profileDropdown.classList.toggle('hidden'); });
+topbarFoto.addEventListener('click', () => { profileDropdown.classList.toggle('hidden'); });
 btnShowLoginModal.addEventListener('click', () => { profileDropdown.classList.add('hidden'); loginOverlay.classList.remove('hidden'); });
 btnCloseLoginModal.addEventListener('click', () => loginOverlay.classList.add('hidden'));
 
@@ -162,41 +152,39 @@ document.getElementById('toggle-password').addEventListener('click', function() 
     else { passInput.type = 'password'; this.innerText = '👁️'; }
 });
 
-// PERBAIKAN: Login menggunakan Personal Access Token (PAT) GitHub
 document.getElementById('btn-login-submit').addEventListener('click', async () => {
-    const token = document.getElementById('login-password').value; // Ambil token dari input password
+    const token = document.getElementById('login-password').value; 
     
     if(!token.startsWith("ghp_")) {
-        return alert("Format Token tidak valid. Pastikan Anda memasukkan Personal Access Token (PAT) GitHub yang berawalan 'ghp_'.");
+        return alert("Format Token tidak valid. Pastikan berawalan 'ghp_'.");
     }
 
-    // Tes koneksi API dengan token tersebut
     try {
         const response = await fetch("https://api.github.com/user", {
             headers: { "Authorization": `token ${token}` }
         });
         
         if(response.ok) {
-            alert("Verifikasi Berhasil! Selamat Datang di Dashboard Admin.");
             GITHUB_TOKEN = token;
-            sessionStorage.setItem('adminToken', token); // Simpan sementara di memori tab
+            sessionStorage.setItem('adminToken', token); 
+            sessionStorage.removeItem('portfolioCacheData'); // Hapus cache agar mode admin bisa tulis data baru
             
             document.getElementById('login-password').value = '';
             loginOverlay.classList.add('hidden'); publicLayout.classList.add('hidden');
             adminLayout.classList.remove('hidden'); setAdminMode(true); window.scrollTo(0,0);
             
-            // Reload data menggunakan token baru agar mendapat akses tulis penuh
             fetchFromGitHub();
         } else {
-            alert("Token GitHub Ditolak. Pastikan token benar dan memiliki akses (repo).");
+            alert("Token GitHub Ditolak.");
         }
     } catch (e) {
-        alert("Gagal melakukan koneksi ke GitHub.");
+        alert("Gagal koneksi ke GitHub API.");
     }
 });
 
 btnLogout.addEventListener('click', () => { 
-    GITHUB_TOKEN = null; sessionStorage.removeItem('adminToken'); setAdminMode(false); alert("Berhasil Logout."); 
+    GITHUB_TOKEN = null; sessionStorage.removeItem('adminToken'); sessionStorage.removeItem('portfolioCacheData'); setAdminMode(false); alert("Berhasil Logout."); 
+    location.reload(); // Refresh halaman untuk kembali ke awal
 });
 
 btnToggleAdmin.addEventListener('click', () => { publicLayout.classList.add('hidden'); adminLayout.classList.remove('hidden'); window.scrollTo(0,0);});
@@ -231,7 +219,6 @@ document.getElementById('btn-batal-edit-edu').onclick = () => resetForm('edu');
 document.getElementById('btn-batal-edit-skill').onclick = () => resetForm('skill');
 document.getElementById('btn-batal-edit-exp').onclick = () => resetForm('exp');
 
-// Fitur Drag & Drop untuk Array
 function enableDragAndDropArray(containerId, arrayData, renderCallback) {
     const container = document.getElementById(containerId);
     let draggedItemIndex = null;
@@ -254,7 +241,6 @@ function enableDragAndDropArray(containerId, arrayData, renderCallback) {
         }
     });
 
-    // PERBAIKAN: Setelah drag selesai, langsung Push ke GitHub!
     container.addEventListener('dragend', async (e) => {
         const draggedElement = document.querySelector('.dragging');
         if (draggedElement) {
@@ -271,8 +257,8 @@ function enableDragAndDropArray(containerId, arrayData, renderCallback) {
             });
             
             if (urutanBerubah) {
-                arrayData.length = 0; arrayData.push(...newArray); // Update array lokal
-                await pushToGitHub(); // Langsung Tembak ke GitHub Server
+                arrayData.length = 0; arrayData.push(...newArray); 
+                await pushToGitHub(); 
                 renderCallback();
             }
         }
@@ -292,9 +278,8 @@ function enableDragAndDropArray(containerId, arrayData, renderCallback) {
 
 
 // ==========================================
-// 4. LOGIKA CRUD
+// 4. LOGIKA CRUD (TIDAK ADA PERUBAHAN BESAR)
 // ==========================================
-
 function renderSemua() {
     renderBiodata();
     renderPendidikan();
@@ -307,11 +292,7 @@ document.getElementById('btn-tambah-link').addEventListener('click', () => {
     const container = document.getElementById('link-dinamis-container');
     const div = document.createElement('div');
     div.style.marginBottom = "8px"; div.style.display = "flex"; div.style.gap = "10px";
-    div.innerHTML = `
-        <input type="text" class="link-nama" placeholder="Teks Link" style="width:35%; margin:0;">
-        <input type="url" class="link-url" placeholder="URL Lengkap" style="width:55%; margin:0;">
-        <button class="btn-hapus" style="margin:0;" onclick="this.parentElement.remove()">X</button>
-    `;
+    div.innerHTML = `<input type="text" class="link-nama" placeholder="Teks Link" style="width:35%; margin:0;"><input type="url" class="link-url" placeholder="URL Lengkap" style="width:55%; margin:0;"><button class="btn-hapus" style="margin:0;" onclick="this.parentElement.remove()">X</button>`;
     container.appendChild(div);
 });
 
@@ -338,17 +319,17 @@ document.getElementById('btn-simpan-biodata').addEventListener('click', async ()
     dbData.profil.links = linksArray;
 
     const sukses = await pushToGitHub();
-    if(sukses) { alert("Biodata berhasil disimpan ke GitHub!"); renderSemua(); }
+    if(sukses) { renderSemua(); }
 });
 
 document.getElementById('btn-simpan-desc').addEventListener('click', async () => {
     dbData.profil.deskripsi = document.getElementById('desc-text').value || "";
     const sukses = await pushToGitHub();
-    if(sukses) { alert("Deskripsi berhasil disimpan ke GitHub!"); renderSemua(); }
+    if(sukses) { renderSemua(); }
 });
 
 function renderBiodata() {
-    const data = dbData.profil;
+    const data = dbData.profil || {};
     let namaLengkap = data.nama || "Nama User";
     
     document.getElementById('topbar-name').innerText = namaLengkap;
@@ -363,19 +344,30 @@ function renderBiodata() {
     }
     document.getElementById('tampil-kontak-link').innerHTML = subInfoHTML.join(' &nbsp;|&nbsp; ');
 
-    document.documentElement.style.setProperty('--bg-color-1', data.bg1 || '#e0f2fe');
-    document.documentElement.style.setProperty('--bg-color-2', data.bg2 || '#4fc3f7');
-    document.documentElement.style.setProperty('--text-color', data.text_color || '#1e293b');
-    document.documentElement.style.setProperty('--nav-color', data.nav_color || '#0f172a');
-    document.documentElement.style.setProperty('--btn-color', data.btn_color || '#0ea5e9');
+    // Atur Palet Jika Kosong (Gunakan bawaan Clean)
+    const b1 = data.bg1 || '#ffffff'; const b2 = data.bg2 || '#f8fafc';
+    const tc = data.text_color || '#334155'; const nc = data.nav_color || '#ffffff';
+    const bc = data.btn_color || '#2563eb';
 
-    // Populate Form Admin
+    document.documentElement.style.setProperty('--bg-color-1', b1);
+    document.documentElement.style.setProperty('--bg-color-2', b2);
+    document.documentElement.style.setProperty('--text-color', tc);
+    document.documentElement.style.setProperty('--nav-color', nc);
+    document.documentElement.style.setProperty('--btn-color', bc);
+
+    // Sidebar Teks butuh penyesuaian jika background navbar putih
+    if(nc === '#ffffff' || nc === '#fff') {
+        document.documentElement.style.setProperty('--sidebar-text', '#334155');
+    } else {
+        document.documentElement.style.setProperty('--sidebar-text', '#ffffff');
+    }
+
     document.getElementById('bio-nama').value = data.nama || ""; document.getElementById('bio-email').value = data.email || "";
     document.getElementById('bio-wa').value = data.wa || ""; document.getElementById('bio-foto-profil').value = data.foto_profil || "";
     document.getElementById('bio-foto-full').value = data.foto_full || "";
-    document.getElementById('color-bg1').value = data.bg1 || "#e0f2fe"; document.getElementById('color-bg2').value = data.bg2 || "#4fc3f7";
-    document.getElementById('color-text').value = data.text_color || "#1e293b";
-    document.getElementById('color-nav').value = data.nav_color || "#0f172a"; document.getElementById('color-btn').value = data.btn_color || "#0ea5e9";
+    document.getElementById('color-bg1').value = b1; document.getElementById('color-bg2').value = b2;
+    document.getElementById('color-text').value = tc;
+    document.getElementById('color-nav').value = nc; document.getElementById('color-btn').value = bc;
     document.getElementById('desc-text').value = data.deskripsi || "";
     document.getElementById('tampil-deskripsi').innerText = data.deskripsi || "Belum ada deskripsi.";
 
@@ -385,16 +377,11 @@ function renderBiodata() {
         data.links.forEach(l => {
             const div = document.createElement('div');
             div.style.marginBottom = "8px"; div.style.display = "flex"; div.style.gap = "10px";
-            div.innerHTML = `
-                <input type="text" class="link-nama" value="${l.nama}" placeholder="Teks" style="width:35%; margin:0;">
-                <input type="url" class="link-url" value="${l.url}" placeholder="URL" style="width:55%; margin:0;">
-                <button class="btn-hapus" style="margin:0;" onclick="this.parentElement.remove()">X</button>
-            `;
+            div.innerHTML = `<input type="text" class="link-nama" value="${l.nama}" placeholder="Teks" style="width:35%; margin:0;"><input type="url" class="link-url" value="${l.url}" placeholder="URL" style="width:55%; margin:0;"><button class="btn-hapus" style="margin:0;" onclick="this.parentElement.remove()">X</button>`;
             linkContainer.appendChild(div);
         });
     }
 
-    // Tempel gelar
     if(dbData.pendidikan && dbData.pendidikan.length > 0) {
         let arrGelar = dbData.pendidikan.filter(p => p.gelar && p.gelar.trim() !== "").map(p => p.gelar);
         if(arrGelar.length > 0) namaLengkap += ", " + arrGelar.join(", ");
@@ -460,37 +447,24 @@ function renderPendidikan() {
                 <div class="drag-handle" title="Tarik untuk memindahkan">☰</div>
                 <div><strong style="color:var(--nav-color);">${data.instansi}</strong> <br> <small>${data.jurusan || "-"}</small></div>
             </div>
-            <div>
-                <button class="btn-edit" style="margin-right:5px;">Edit</button>
-                <button class="btn-hapus">Hapus</button>
-            </div>
+            <div><button class="btn-edit" style="margin-right:5px;">Edit</button><button class="btn-hapus">Hapus</button></div>
         `;
         adm.querySelector('.btn-edit').onclick = () => {
             resetForm('edu'); 
             document.getElementById('edu-instansi').value = data.instansi; document.getElementById('edu-gelar').value = data.gelar || "";
             document.getElementById('edu-lokasi').value = data.lokasi || ""; document.getElementById('edu-jurusan').value = data.jurusan || "";
             document.getElementById('edu-ipk').value = data.ipk || ""; document.getElementById('edu-mulai').value = data.mulai || "";
-            if(data.lulus === "Sekarang") {
-                document.getElementById('edu-masih-belajar').checked = true; document.getElementById('edu-lulus').disabled = true;
-            } else {
-                document.getElementById('edu-masih-belajar').checked = false; document.getElementById('edu-lulus').disabled = false;
-                document.getElementById('edu-lulus').value = data.lulus || "";
-            }
+            if(data.lulus === "Sekarang") { document.getElementById('edu-masih-belajar').checked = true; document.getElementById('edu-lulus').disabled = true; } 
+            else { document.getElementById('edu-masih-belajar').checked = false; document.getElementById('edu-lulus').disabled = false; document.getElementById('edu-lulus').value = data.lulus || ""; }
             document.getElementById('edu-file').value = data.bukti_file_url || "";
-            editStateId.edu = index;
-            document.getElementById('btn-tambah-edu').innerText = 'Simpan Perubahan Data';
-            document.getElementById('btn-batal-edit-edu').classList.remove('hidden');
+            editStateId.edu = index; document.getElementById('btn-tambah-edu').innerText = 'Simpan Perubahan Data'; document.getElementById('btn-batal-edit-edu').classList.remove('hidden');
             window.scrollTo(0, document.getElementById('edu-instansi').offsetTop - 100);
         };
         adm.querySelector('.btn-hapus').onclick = async () => { 
-            if(confirm(`Yakin ingin menghapus ${data.instansi}?`)) { 
-                dbData.pendidikan.splice(index, 1);
-                const sukses = await pushToGitHub(); if(sukses) renderSemua(); 
-            } 
+            if(confirm(`Yakin ingin menghapus ${data.instansi}?`)) { dbData.pendidikan.splice(index, 1); const sukses = await pushToGitHub(); if(sukses) renderSemua(); } 
         };
         adminContainer.appendChild(adm);
     });
-    
     enableDragAndDropArray('admin-list-edu', dbData.pendidikan, renderSemua);
 }
 
@@ -519,25 +493,16 @@ function renderSkills() {
         const adm = document.createElement('div');
         adm.className = "admin-list-item"; adm.setAttribute('draggable', true); adm.setAttribute('data-index', index);
         adm.innerHTML = `
-            <div class="admin-list-content">
-                <div class="drag-handle">☰</div>
-                <div><strong style="color:var(--nav-color);">${data.judul}</strong></div>
-            </div>
-            <div>
-                <button class="btn-edit" style="margin-right:5px;">Edit</button>
-                <button class="btn-hapus">Hapus</button>
-            </div>
+            <div class="admin-list-content"><div class="drag-handle">☰</div><div><strong style="color:var(--nav-color);">${data.judul}</strong></div></div>
+            <div><button class="btn-edit" style="margin-right:5px;">Edit</button><button class="btn-hapus">Hapus</button></div>
         `;
         adm.querySelector('.btn-edit').onclick = () => {
             resetForm('skill');
             document.getElementById('skill-judul').value = data.judul; document.getElementById('skill-desc').value = data.deskripsi || "";
-            editStateId.skill = index; document.getElementById('btn-tambah-skill').innerText = 'Simpan Perubahan';
-            document.getElementById('btn-batal-edit-skill').classList.remove('hidden'); window.scrollTo(0, document.getElementById('skill-judul').offsetTop - 100);
+            editStateId.skill = index; document.getElementById('btn-tambah-skill').innerText = 'Simpan Perubahan'; document.getElementById('btn-batal-edit-skill').classList.remove('hidden'); window.scrollTo(0, document.getElementById('skill-judul').offsetTop - 100);
         };
         adm.querySelector('.btn-hapus').onclick = async () => { 
-            if(confirm(`Yakin ingin menghapus ${data.judul}?`)) { 
-                dbData.skills.splice(index, 1); const sukses = await pushToGitHub(); if(sukses) renderSemua(); 
-            } 
+            if(confirm(`Yakin ingin menghapus ${data.judul}?`)) { dbData.skills.splice(index, 1); const sukses = await pushToGitHub(); if(sukses) renderSemua(); } 
         };
         adminList.appendChild(adm);
     });
@@ -588,7 +553,6 @@ function renderPengalaman() {
     if(!dbData.pengalaman) return;
 
     dbData.pengalaman.forEach((data, index) => {
-        // --- PUBLIC UI ---
         const card = document.createElement('div'); card.className = "exp-card";
         const imgUrl = data.bukti_file_url ? data.bukti_file_url : "https://via.placeholder.com/300x160?text=Tidak+Ada+Gambar";
         
@@ -616,18 +580,11 @@ function renderPengalaman() {
         };
         pubGrid.appendChild(card);
 
-        // --- ADMIN UI ---
         const adm = document.createElement('div');
         adm.className = "admin-list-item"; adm.setAttribute('draggable', true); adm.setAttribute('data-index', index);
         adm.innerHTML = `
-            <div class="admin-list-content">
-                <div class="drag-handle">☰</div>
-                <div><strong style="color:var(--nav-color);">${data.judul}</strong> <br> <small>Tipe: ${data.tipe}</small></div>
-            </div>
-            <div>
-                <button class="btn-edit" style="margin-right:5px;">Edit</button>
-                <button class="btn-hapus">Hapus</button>
-            </div>
+            <div class="admin-list-content"><div class="drag-handle">☰</div><div><strong style="color:var(--nav-color);">${data.judul}</strong> <br> <small>Tipe: ${data.tipe}</small></div></div>
+            <div><button class="btn-edit" style="margin-right:5px;">Edit</button><button class="btn-hapus">Hapus</button></div>
         `;
         adm.querySelector('.btn-edit').onclick = () => {
             resetForm('exp'); 
@@ -645,15 +602,10 @@ function renderPengalaman() {
                 }
             } else { document.getElementById('exp-desc').value = data.deskripsi || ""; }
             
-            editStateId.exp = index;
-            document.getElementById('btn-tambah-exp').innerText = 'Simpan Perubahan';
-            document.getElementById('btn-batal-edit-exp').classList.remove('hidden');
-            window.scrollTo(0, document.getElementById('exp-judul').offsetTop - 100);
+            editStateId.exp = index; document.getElementById('btn-tambah-exp').innerText = 'Simpan Perubahan'; document.getElementById('btn-batal-edit-exp').classList.remove('hidden'); window.scrollTo(0, document.getElementById('exp-judul').offsetTop - 100);
         };
         adm.querySelector('.btn-hapus').onclick = async () => { 
-            if(confirm(`Yakin ingin menghapus ${data.judul}?`)) { 
-                dbData.pengalaman.splice(index, 1); const sukses = await pushToGitHub(); if(sukses) renderSemua(); 
-            } 
+            if(confirm(`Yakin ingin menghapus ${data.judul}?`)) { dbData.pengalaman.splice(index, 1); const sukses = await pushToGitHub(); if(sukses) renderSemua(); } 
         };
         adminList.appendChild(adm);
     });

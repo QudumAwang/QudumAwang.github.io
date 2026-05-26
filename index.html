@@ -8,6 +8,8 @@
 </head>
 <body>
 
+    <button id="mobile-menu-btn">☰</button>
+
     <nav id="sidebar">
         <h2>Portofolio</h2>
         <a href="#sec-biodata">Profil Utama</a>
@@ -38,13 +40,13 @@
 
     <div id="exp-modal-overlay" class="hidden">
         <div class="exp-modal-box">
-            <span id="close-exp-modal" style="float:right; cursor:pointer; font-size:28px; line-height:1; color:#94a3b8;">&times;</span>
+            <span id="close-exp-modal" style="float:right; cursor:pointer; font-size:28px; line-height:1; color:#94a3b8; transition:0.2s;">&times;</span>
             <div class="exp-modal-content" style="margin-top: 10px;">
-                <img id="modal-exp-img" src="" alt="Bukti Projek" style="width:100%; border-radius:12px; margin-bottom:20px; max-height:300px; object-fit:contain; background:#f1f5f9;">
-                <h2 id="modal-exp-title" style="color:var(--nav-color); margin-bottom:15px; font-weight: 800; font-size: 22px;">Judul Pengalaman</h2>
-                <div id="modal-exp-desc" style="color:#475569; font-size:15px; margin-bottom:25px; line-height:1.7; text-align:justify;">Deskripsi detail akan muncul di sini...</div>
+                <img id="modal-exp-img" src="" alt="Bukti Projek" style="width:100%; border-radius:16px; margin-bottom:20px; max-height:300px; object-fit:contain; background:#f8fafc;">
+                <h2 id="modal-exp-title" style="color:var(--nav-color); margin-bottom:15px; font-weight: 800; font-size: 24px; letter-spacing:-0.5px;">Judul Pengalaman</h2>
+                <div id="modal-exp-desc" style="color:#475569; font-size:16px; margin-bottom:30px; line-height:1.7; text-align:justify;">Deskripsi detail akan muncul di sini...</div>
                 <div id="modal-exp-link-container" style="text-align:center;">
-                    <a id="modal-exp-link" href="#" target="_blank" style="display:inline-block; padding:12px 25px; background:var(--btn-color); color:white; text-decoration:none; border-radius:8px; font-weight:600; transition:0.2s;">Lihat Projek</a>
+                    <a id="modal-exp-link" href="#" target="_blank" style="display:inline-block; padding:14px 30px; background:var(--btn-color); color:white; text-decoration:none; border-radius:12px; font-weight:600; transition:0.3s; box-shadow:0 4px 15px rgba(37,99,235,0.2);">Lihat Projek</a>
                 </div>
             </div>
         </div>
@@ -53,7 +55,6 @@
     <div id="main-container">
         
         <div id="topbar">
-            <span id="topbar-name">Memuat...</span>
             <div style="position: relative;">
                 <img id="topbar-foto" src="https://via.placeholder.com/50" alt="Profil">
                 <div id="profile-dropdown" class="profile-dropdown hidden">
@@ -64,35 +65,36 @@
 
         <div id="public-layout">
             
-            <section id="sec-biodata" class="section" style="padding-top: 60px;">
+            <section id="sec-biodata" class="section" style="padding-top: 40px;">
                 <h1 id="tampil-nama-besar" class="profile-name-big">Memuat...</h1>
                 <div id="tampil-kontak-link" class="profile-sub-info">Memuat kontak...</div>
 
                 <div class="bio-grid">
                     <div class="bio-desc" id="tampil-deskripsi">Memuat deskripsi diri...</div>
-                    <div class="bio-photo-capsule">
-                        <img id="tampil-foto-full" src="https://via.placeholder.com/300x450?text=Foto" alt="Foto Full">
+                    <div class="bio-photo-wrapper">
+                        <div class="bio-photo-capsule">
+                            <img id="tampil-foto-full" src="https://via.placeholder.com/300x450?text=Foto" alt="Foto Full">
+                        </div>
                     </div>
                 </div>
             </section>
 
             <section id="sec-pendidikan" class="section">
                 <h2 class="section-title">Riwayat Pendidikan</h2>
-                <div id="tampil-pendidikan">Loading data...</div>
+                <div id="tampil-pendidikan">Memuat data...</div>
             </section>
 
             <section id="sec-skill" class="section">
                 <h2 class="section-title">Keahlian (Skill)</h2>
                 <ul class="skill-list" id="tampil-skill">
-                    <li>Loading...</li>
+                    <li>Memuat...</li>
                 </ul>
             </section>
 
             <section id="sec-pengalaman" class="section">
                 <h2 class="section-title">Pengalaman & Projek</h2>
-                <p style="margin-bottom: 20px; font-size: 14px; color: #64748b;">*Klik kartu untuk melihat detail projek</p>
                 <div class="exp-grid-container" id="tampil-pengalaman">
-                    Loading data...
+                    Memuat data...
                 </div>
             </section>
         </div>
@@ -100,9 +102,11 @@
         <div id="admin-layout" class="hidden">
             <div id="admin-panel">
                 <h1 style="color: var(--nav-color); font-weight: 800; border-bottom: 3px solid #e2e8f0; margin-bottom: 20px; padding-bottom: 15px;">DASHBOARD ADMINISTRATOR</h1>
-                <button id="btn-close-admin" style="background: #64748b; margin-bottom: 30px;">← Simpan & Lihat Tampilan Web</button>
-                <button id="btn-export-json" style="background: #10b981; flex: 1; font-weight: bold; border: 2px solid #059669;">⬇️ Download data.json (Simpan ke GitHub)</button>
-                <button id="btn-reset-local" style="background: #ef4444; flex: 1;">🔄 Reset & Ambil Data GitHub Terbaru</button>
+                <div style="display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;">
+                    <button id="btn-close-admin" style="background: #64748b; flex: 1; min-width:200px;">← Lihat Tampilan Web</button>
+                    <button id="btn-export-json" style="background: #10b981; flex: 1; min-width:200px; font-weight: bold; border: 2px solid #059669;">⬇️ Download data.json (Simpan ke GitHub)</button>
+                    <button id="btn-reset-local" style="background: #ef4444; flex: 1; min-width:200px;">🔄 Reset & Ambil Data GitHub Terbaru</button>
+                </div>
                 
                 <div class="form-section">
                     <h3 style="margin-bottom: 15px; color:var(--nav-color);">1. Profil & Tema Web</h3>
@@ -113,11 +117,11 @@
                     <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 15px 0;">
                         <h4 style="margin-bottom:15px; color:var(--nav-color);">🎨 Warna Tema Web</h4>
                         <div style="display:flex; gap: 20px; flex-wrap: wrap;">
-                            <label>Bg Gradasi 1: <input type="color" id="color-bg1" value="#f0f9ff" style="height:40px; padding:2px;"></label>
-                            <label>Bg Gradasi 2: <input type="color" id="color-bg2" value="#e0f2fe" style="height:40px; padding:2px;"></label>
+                            <label>Bg Gradasi 1: <input type="color" id="color-bg1" value="#ffffff" style="height:40px; padding:2px;"></label>
+                            <label>Bg Gradasi 2: <input type="color" id="color-bg2" value="#f8fafc" style="height:40px; padding:2px;"></label>
                             <label>Teks: <input type="color" id="color-text" value="#1e293b" style="height:40px; padding:2px;"></label>
                             <label>Navbar: <input type="color" id="color-nav" value="#0f172a" style="height:40px; padding:2px;"></label>
-                            <label>Tombol: <input type="color" id="color-btn" value="#0ea5e9" style="height:40px; padding:2px;"></label>
+                            <label>Tombol: <input type="color" id="color-btn" value="#2563eb" style="height:40px; padding:2px;"></label>
                         </div>
                     </div>
 
@@ -203,6 +207,6 @@
         </div>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
