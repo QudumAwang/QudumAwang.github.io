@@ -52,5 +52,14 @@
             "deskripsi": ""
         }
     ],
-    "pengalaman": []
+    "pengalaman": [
+        {
+            "judul": "Sistem Reservasi Parkir Berbasis Web",
+            "tipe": "paragraf",
+            "deskripsi": "",
+            "poin_array": [],
+            "link": "https://github.com/QudumAwang/reservasi-parkir",
+            "bukti_file_url": "aset\\Screenshot (811).png"
+        }
+    ]
 }
